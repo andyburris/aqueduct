@@ -27,7 +27,7 @@ export abstract class AutomaticIngestionMethod<PI extends PrereqInfo, SI extends
         .then(pi => this.checkPrereqs(pi))
         .then(async pi => {
             const si = await this.loadSyncInfo()
-            this.sync(pi, si)
+            return this.sync(pi, si)
         })
     }
 }

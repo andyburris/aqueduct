@@ -1,6 +1,4 @@
-import { APIKeyAuth } from "../auth"
-import { APIKeyPrereq, AutomaticIngestionMethod, Extension, IngestionMethod, NoSyncInfo } from "../extension"
-import { NoInput } from "../input";
+import { APIKeyPrereq, AutomaticIngestionMethod, Extension, IngestionMethod, NoSyncInfo } from "../extension";
 
 const options = {
     method: 'POST',
@@ -26,7 +24,7 @@ export class SupernotesAPIIngestion extends AutomaticIngestionMethod<APIKeyPrere
     checkPrereqs = (prereqInfo: APIKeyPrereq) => prereqInfo.apiKey ? Promise.resolve(prereqInfo) : Promise.reject("Supernotes: No API key provided")
     sync = (auth: APIKeyPrereq) => { 
         return fetch(
-            'http://localhost:8082/https://api.supernotes.app/v1/cards/get/select',
+            'https://api.supernotes.app/v1/cards/get/select',
             { 
                 headers: {'Api-Key': auth.apiKey!, 'Content-Type': 'application/json'},
                 ...options

@@ -1,7 +1,6 @@
-import { unzip } from "unzipit";
-import { APIKeyPrereq, AutomaticIngestionMethod, Extension, FileSyncInfo, IngestionMethod, ManualIngestionMethod, NoPrereq, NoSyncInfo } from "../extension"
-import { FileInput, NoInput } from "../input";
 import { NotionAPI } from "notion-client";
+import { unzip } from "unzipit";
+import { APIKeyPrereq, AutomaticIngestionMethod, Extension, FileSyncInfo, IngestionMethod, ManualIngestionMethod, NoPrereq, NoSyncInfo } from "../extension";
 
 const options = {
     method: 'POST',
@@ -31,7 +30,7 @@ export class NotionAPIIngestion extends AutomaticIngestionMethod<NotionAPIKeyPre
     checkPrereqs = (prereqInfo: NotionAPIKeyPrereq) => (prereqInfo.apiKey && prereqInfo.activeUserID) ? Promise.resolve(prereqInfo) : Promise.reject("Notion: No API key provided")
     sync = (auth: NotionAPIKeyPrereq) => { 
         const notionAPI = new NotionAPI({ 
-            apiBaseUrl: "http://localhost:8082/https://www.notion.so/api/v3",
+            apiBaseUrl: "https://www.notion.so/api/v3",
             activeUser: auth.activeUserID!, 
             authToken: auth.apiKey!
         })
@@ -41,10 +40,11 @@ export class NotionAPIIngestion extends AutomaticIngestionMethod<NotionAPIKeyPre
             kyOptions: {
                 credentials: "include",
             }
-        }).then(r => (r as any).json())
+        })
         .then(o =>{
             console.log("synced Notion record map")
             console.log(o)
+            return o
         })
         // return notionAPI.getPage("fd6926949c034fa999f7f2f500bf194c")
         // .then(r => (r as any).json())

@@ -1,4 +1,3 @@
-import { createContext } from "react";
 import { AutomaticIngestionMethod, Extension } from "./extension";
 
 export class Orchestrator {
@@ -11,8 +10,10 @@ export class Orchestrator {
             .flatMap((e) => e.ingestionMethods)
             .filter(im => im instanceof AutomaticIngestionMethod)
         
-        syncs.forEach(im => im.trySync().then(r => im.onSync(r, im.id)))
+        syncs.forEach(im => 
+            im
+            .trySync()
+            .then(r => im.onSync(r, im.id))
+            .catch(e => console.error("error syncing", im.id, e)))
     }
 }
-
-export const OrchestratorContext = createContext(new Orchestrator([]))

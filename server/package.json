@@ -1,0 +1,23 @@
+{
+    "name": "skybridge-proto-server",
+    "version": "0.1.0",
+    "description": "",
+    "main": "index.ts",
+    "author": "andyburris",
+    "license": "MIT",
+    "type": "module",
+    "scripts": {
+        "dev": "node "
+    },
+    "dependencies": {
+        "flat": "^6.0.1",
+        "notion-client": "^7.1.5",
+        "tinybase": "^5.3.0",
+        "unzipit": "^1.4.3",
+        "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@flydotio/dockerfile": "^0.5.8",
+        "@types/ws": "^8.5.12"
+    }
+}

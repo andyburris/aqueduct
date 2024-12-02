@@ -1,15 +1,12 @@
 "use client"
 
 import { Bridge, CodeSimple } from "@phosphor-icons/react";
-import { Container } from "../common/Container";
-import { useCell, useSetCellCallback, useTable } from "tinybase/ui-react";
 import { FileTrigger, Input, Label, TextField } from "react-aria-components";
-import { Button, Link } from "../common/Components";
+import { useCell, useSetCellCallback, useTable } from "tinybase/ui-react";
 import { Inspector } from "tinybase/ui-react-inspector";
+import { Button, Link } from "../common/Components";
+import { Container } from "../common/Container";
 import { PageProvider } from "../page";
-import { useContext } from "react";
-import { OrchestratorContext } from "../skybridge/orchestrator";
-import { FileSyncInfo, ManualIngestionMethod, NoPrereq } from "../skybridge/extension";
 
 export default function Page() {
     return (
@@ -21,7 +18,6 @@ export default function Page() {
 
 function BridgesPage() {
     const extensionSettings = useTable("extensions")
-    const orchestrator = useContext(OrchestratorContext)
 
     const supernotesAPIKey = useCell("extensions", "supernotes", "apiKey")
     const updateSupernotesAPIKey = useSetCellCallback("extensions", "supernotes", "apiKey", (v: string) => v)
@@ -53,11 +49,11 @@ function BridgesPage() {
                     <p>Notion</p>
                     <FileTrigger
                         onSelect={(e) => {
-                            const extension = orchestrator.extensions.find(e => e.id == "notion")
-                            const ingestion = extension?.ingestionMethods?.find(im => im.id == "notion-export") as ManualIngestionMethod<NoPrereq, FileSyncInfo> | undefined
-                            const file = e?.[0]
-                            console.log("starting notion export ingest, file = ", file, "ingestion = ", ingestion, "extension = ", extension)
-                            if(file && ingestion) ingestion.trySync({ file })
+                            // const extension = orchestrator.extensions.find(e => e.id == "notion")
+                            // const ingestion = extension?.ingestionMethods?.find(im => im.id == "notion-export") as ManualIngestionMethod<NoPrereq, FileSyncInfo> | undefined
+                            // const file = e?.[0]
+                            // console.log("starting notion export ingest, file = ", file, "ingestion = ", ingestion, "extension = ", extension)
+                            // if(file && ingestion) ingestion.trySync({ file })
                         }}>
                         <Button 
                             kind="secondary" 
