@@ -42,9 +42,21 @@ export class NotionAPIIngestion extends AutomaticIngestionMethod<NotionAPIKeyPre
             }
         })
         .then(o =>{
-            console.log("synced Notion record map")
-            console.log(o)
+            // console.log("synced Notion record map")
+            // console.log(o)
             return o
+        })
+        .then(async spaces => {
+            const spaceObject = (Object.values(spaces as any)[0] as any).space
+            // console.log("spaces.space = ", spaceObject)
+            const allPages: string[] = Object.values(spaceObject).flatMap((s: any) => s.value.pages)
+            const pages = await processPages(notionAPI, allPages, [])
+            console.log(`synced ${pages.length} pages = `, allPages)
+            return Object.fromEntries(
+                pages
+                // .slice(5)
+                .map((p: any) => [Object.keys(p.block)[0], p])
+            )
         })
         // return notionAPI.getPage("fd6926949c034fa999f7f2f500bf194c")
         // .then(r => (r as any).json())
@@ -57,6 +69,20 @@ export class NotionAPIIngestion extends AutomaticIngestionMethod<NotionAPIKeyPre
         public loadAPIKeys: () => Promise<NotionAPIKeyPrereq>,
         public onSync: (response: any, id: string) => void
     ) { super() }
+}
+
+function processPages(notionAPI: NotionAPI, pageIDs: string[], processedPages: string[]): Promise<any[]> {
+    const updatedProcessedPages = [...pageIDs, ...processedPages]
+    const newPageIDs = pageIDs.filter(id => !processedPages.includes(id))
+    const pageFetches = newPageIDs.map(id => notionAPI.getPage(id))
+    // const pageFetches = notionAPI.getBlocks(newPageIDs)
+    return Promise.all(pageFetches)
+        // .then(async pages => {
+        //     const newPageIDs = pages.flatMap((p: any) => p.blockIDs)
+        //     return newPageIDs.length > 0
+        //         ? [...pages, ...(await processPages(notionAPI, newPageIDs, updatedProcessedPages))]
+        //         : pages
+        // })
 }
 
 export class NotionExportIngestion extends ManualIngestionMethod<NoPrereq, FileSyncInfo> {
