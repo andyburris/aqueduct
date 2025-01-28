@@ -8,25 +8,6 @@ import { Provider, useCreateMergeableStore, useCreatePersister, useCreateSynchro
 import { Inspector } from "tinybase/ui-react-inspector";
 import { HomePage } from "./home/HomePage";
 
-const testNote: Note = {
-	id: "test",
-	title: "Test Note",
-	content: "content of the test note",
-	source: "test",
-	timestamp: Date.now(),
-	createdTimestamp: Date.now(),
-	syncedTimestamp: Date.now(),
-}
-const testNote2: Note = {
-	id: "test-2",
-	content: "this is an untitled test note",
-	source: "test",
-	timestamp: Date.now(),
-	createdTimestamp: Date.now(),
-	syncedTimestamp: Date.now(),
-}
-
-
 export default function Home() {
 	return (
 		<PageProvider>
@@ -38,9 +19,10 @@ export default function Home() {
 const SERVER_SCHEME = 'ws://';
 const SERVER = 'localhost:8050';
 export function PageProvider({ children }: { children: React.ReactElement }) {
-	const store = useCreateMergeableStore(() => createMergeableStore())
+	const sharedStore = useCreateMergeableStore(() => createMergeableStore())
+	const secureStore = useCreateMergeableStore(() => createMergeableStore())
 	useCreatePersister(
-		store, 
+		sharedStore, 
 		(store) => createLocalPersister(store, "notesStore"),
 		[], 
 		async (persister) => {
@@ -48,10 +30,10 @@ export function PageProvider({ children }: { children: React.ReactElement }) {
 			await persister.startAutoSave();
 		})
 
-	useCreateSynchronizer(store, async (store: MergeableStore) => {
+	const sharedSync = useCreateSynchronizer(sharedStore, async (store: MergeableStore) => {
 		const synchronizer = await createWsSynchronizer(
 			store,
-			new ReconnectingWebSocket(SERVER_SCHEME + SERVER + "/demo"),
+			new ReconnectingWebSocket(SERVER_SCHEME + SERVER + "/demo/shared"),
 			1
 		);
 		await synchronizer.startSync();
@@ -62,11 +44,31 @@ export function PageProvider({ children }: { children: React.ReactElement }) {
 		});
 	
 		return synchronizer;
+	});
+
+	const secureSync = useCreateSynchronizer(secureStore, async (store: MergeableStore) => {
+		const synchronizer = await createWsSynchronizer(
+			store,
+			new ReconnectingWebSocket(SERVER_SCHEME + SERVER + "/demo/secure"),
+			1
+		);
+		await synchronizer.startSync();
+	
+		// If the websocket reconnects in the future, do another explicit sync.
+		synchronizer.getWebSocket().addEventListener('open', () => {
+			synchronizer.load().then(() => synchronizer.save());
 		});
 	
-	
+		return synchronizer;
+	});
+		
 	return (
-		<Provider store={store}>
+		<Provider 
+			store={sharedStore} 
+			storesById={{secure: secureStore}} 
+			synchronizer={sharedSync} 
+			synchronizersById={{secure: secureSync}}
+		>
 			{children}
 			<Inspector/>
 		</Provider>

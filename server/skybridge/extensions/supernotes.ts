@@ -18,10 +18,6 @@ export class SupernotesExtension implements Extension {
 
 export class SupernotesAPIIngestion extends AutomaticIngestionMethod<APIKeyPrereq, NoSyncInfo> {
     id = "supernotes-api"
-    loadPrereqInfo = () => this.loadAPIKey().then(k => { return { apiKey: k } })
-    loadSyncInfo = () => Promise.resolve({})
-
-    checkPrereqs = (prereqInfo: APIKeyPrereq) => prereqInfo.apiKey ? Promise.resolve(prereqInfo) : Promise.reject("Supernotes: No API key provided")
     sync = (auth: APIKeyPrereq) => { 
         return fetch(
             'https://api.supernotes.app/v1/cards/get/select',
@@ -35,7 +31,6 @@ export class SupernotesAPIIngestion extends AutomaticIngestionMethod<APIKeyPrere
             .catch(err => console.error(err));              
     }
     constructor(
-        public loadAPIKey: () => Promise<string | null>,
         public onSync: (response: any, id: string) => void
     ) { super() }
 }

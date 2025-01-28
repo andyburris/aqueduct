@@ -5,5 +5,6 @@ interface Note {
     source: string,
     timestamp: number,
     createdTimestamp: number,
+    editedTimestamp: number,
     syncedTimestamp: number,
 }

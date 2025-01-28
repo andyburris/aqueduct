@@ -21,7 +21,7 @@
     "react-aria-components": "^1.4.1",
     "react-dom": "^18",
     "reconnecting-websocket": "^4.4.0",
-    "tinybase": "^5.3.2",
+    "tinybase": "^5.4.3",
     "unzipit": "^1.4.3"
   },
   "devDependencies": {

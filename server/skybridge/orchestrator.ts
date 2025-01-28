@@ -1,19 +1,18 @@
-import { AutomaticIngestionMethod, Extension } from "./extension";
+import { IngestionMethod, PrereqInfo, SyncInfo } from "./extension";
+
+export interface IngestionMethodWithTrigger<IM extends IngestionMethod<PI, SI>, PI extends PrereqInfo, SI extends SyncInfo> {
+    ingestionMethod: IM,
+    setupTriggers: Array<(im: IM) => void>,
+}
 
 export class Orchestrator {
     constructor(
-        public extensions: Extension[],
+        public ingestions: IngestionMethodWithTrigger<any, any, any>[],
     ) {}
 
     startSync() {
-        const syncs = this.extensions
-            .flatMap((e) => e.ingestionMethods)
-            .filter(im => im instanceof AutomaticIngestionMethod)
-        
-        syncs.forEach(im => 
-            im
-            .trySync()
-            .then(r => im.onSync(r, im.id))
-            .catch(e => console.error("error syncing", im.id, e)))
+        this.ingestions.forEach(imt => {
+            imt.setupTriggers.forEach(setupTrigger => setupTrigger(imt.ingestionMethod))
+        })
     }
 }

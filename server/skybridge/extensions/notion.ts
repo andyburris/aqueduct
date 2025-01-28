@@ -27,7 +27,9 @@ export class NotionAPIIngestion extends AutomaticIngestionMethod<NotionAPIKeyPre
     loadPrereqInfo = () => this.loadAPIKeys()
     loadSyncInfo = () => Promise.resolve({})
 
-    checkPrereqs = (prereqInfo: NotionAPIKeyPrereq) => (prereqInfo.apiKey && prereqInfo.activeUserID) ? Promise.resolve(prereqInfo) : Promise.reject("Notion: No API key provided")
+    checkPrereqs = (prereqInfo: NotionAPIKeyPrereq) => (prereqInfo.apiKey && prereqInfo.activeUserID) 
+        ? Promise.resolve(prereqInfo) 
+        : Promise.reject("Notion: No API key provided")
     sync = (auth: NotionAPIKeyPrereq) => { 
         const notionAPI = new NotionAPI({ 
             apiBaseUrl: "https://www.notion.so/api/v3",
