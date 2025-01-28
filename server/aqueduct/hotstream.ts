@@ -81,6 +81,20 @@ export class Stream<T> {
           }
         };
       });
+
+      // Emit initial values if available
+      streams.forEach((stream, index) => {
+        if (stream.lastValue !== null) {
+          values[index] = stream.lastValue.value;
+          emitted[index] = true;
+        }
+      });
+
+      if (!requireAll || emitted.every(Boolean)) {
+        if (values.every(v => v !== undefined)) {
+          resultStream.emit(values as T);
+        }
+      }
   
       return resultStream;
     }
