@@ -15,26 +15,23 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
     const spotifyToken = Stream
         .listener<Row | null | undefined>(emit => loadRowAndListen(secureStore, "auth", "spotify", emit))
         .filterType(c => isAccessToken(c))
-        .onEach(token => {
-          console.log('Got stored token:', token)
-          sharedStore.setCell("extensions", "spotify", "authStatus", "authenticated")
-        });
+        .onEach(token => sharedStore.setCell("extensions", "spotify", "authStatus", "authenticated"));
 
 
     // Playlist sync
     const playlists = spotifyToken
     .every(
         seconds(30),
-        sharedStore.getCell("extensions", "spotify", "lastSyncedAt") as number | undefined,
-        syncedAt => sharedStore.setCell("extensions", "spotify", "lastSyncedAt", syncedAt)
+        sharedStore.getCell("extensions", "spotify", "lastTriedSyncedAt") as number | undefined,
+        syncedAt => sharedStore.setCell("extensions", "spotify", "lastTriedSyncedAt", syncedAt)
     )
-    .onEach(() => console.log('Syncing playlists...'))
     .mapConcurrent(token => {
       const previousPlaylistsTable = serverStore.getTable("spotify")
+      console.log(`Syncing playlists with ${Object.values(previousPlaylistsTable).length} previous playlists...`)
       const previousPlaylists = Object.values(previousPlaylistsTable).map(p => unflatten(p) as FullSpotifyPlaylist)
       return spotify.playlists.getAll(token, previousPlaylists)
     }, 1)
-    .onEach(playlists => console.log(`Finished syncing ${playlists.data.length} playlists...`))
+    .onEach(playlists => console.log(`Finished syncing ${playlists.data.length} playlists`))
     .onEach(playlists => {
       const flattened = Object.fromEntries(playlists.data.map(p => [p.id, flatten(p)])) as Table
       serverStore.setTable("spotify", flattened)
@@ -54,7 +51,7 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
         updatesAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
         deletions.forEach(p => sharedStore.delRow("notes", p.id))
       })
-      sharedStore.setCell("extensions", "spotify", "lastSynced", Date.now())
+      sharedStore.setCell("extensions", "spotify", "lastSyncedAt", Date.now())
       // console.log('Got playlists:', playlists.data)
     });
 }

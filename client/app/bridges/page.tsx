@@ -4,7 +4,7 @@ import { Bridge, CaretRight, CodeSimple } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FileTrigger, Input, Label, TextField } from "react-aria-components";
-import { useCell, useDelRowCallback, useSetCellCallback, useTable } from "tinybase/ui-react";
+import { useCell, useDelRowCallback, useSetCellCallback, useStore, useTable } from "tinybase/ui-react";
 import { Inspector } from "tinybase/ui-react-inspector";
 import { generateGoogleAuthURL } from "../auth/google/googleauth";
 import { redirectSpotifyAuth } from "../auth/spotify/spotifyauth";
@@ -12,6 +12,7 @@ import { Button, Link } from "../common/Components";
 import { Container } from "../common/Container";
 import { PageProvider } from "../page";
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { GoogleDriveLogo, LogoForSource, SpotifyLogo } from "../common/Logos";
 
 export default function Page() {
     return (
@@ -24,6 +25,9 @@ export default function Page() {
 function BridgesPage() {
     const router = useRouter()
     const extensionSettings = useTable("extensions")
+
+    const sharedStore = useStore()
+    const secureStore = useStore("secure")
 
     const supernotesAPIKey = useCell("auth", "supernotes", "apiKey", "secure")
     const updateSupernotesAPIKey = useSetCellCallback("auth", "supernotes", "apiKey", (v: string) => v,  [], "secure")
@@ -46,6 +50,7 @@ function BridgesPage() {
             <Header/>
             <div className="flex flex-col">
                 <BridgeItem
+                    id="supernotes"
                     name="Supernotes"
                     authStatus={(useCell("extensions", "supernotes", "authStatus") as string | undefined) === "authenticated" ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
                     lastSynced={useCell("extensions", "supernotes", "lastSyncedAt") as number | undefined}
@@ -76,9 +81,11 @@ function BridgesPage() {
                     }
                 />
                 <BridgeItem
+                    id="google-drive"
                     name="Google Drive"
                     authStatus={(useCell("extensions", "google-drive", "authStatus") as string | undefined) === "authenticated" ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
                     lastSynced={useCell("extensions", "google-drive", "lastSyncedAt") as number | undefined}
+                    lastSyncedTried={useCell("extensions", "google-drive", "lastTriedSyncedAt") as number | undefined}
                     unauthenticatedChildren={
                         <Button 
                             kind="secondary" 
@@ -101,8 +108,10 @@ function BridgesPage() {
                     }
                 />
                 <BridgeItem
+                    id="spotify"
                     name="Spotify"
                     authStatus={(useCell("extensions", "spotify", "authStatus") as string | undefined) === "authenticated" ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
+                    lastSyncedTried={useCell("extensions", "spotify", "lastTriedSyncedAt") as number | undefined}
                     lastSynced={useCell("extensions", "spotify", "lastSyncedAt") as number | undefined}
                     unauthenticatedChildren={
                         <Button 
@@ -126,6 +135,7 @@ function BridgesPage() {
                     }
                 />
                 <BridgeItem
+                    id="notion"
                     name="Notion"
                     authStatus={(useCell("extensions", "notion", "authStatus") as string | undefined) === "authenticated" ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
                     lastSynced={useCell("extensions", "notion", "lastSyncedAt") as number | undefined}
@@ -172,6 +182,16 @@ function BridgesPage() {
                     authenticatedChildren={<div></div>}
                 />
             </div>
+            <Button 
+                kind="secondary" 
+                size="lg"
+                onPress={() => {
+                    sharedStore?.delTables()
+                    secureStore?.delTables()
+                }}
+            >
+                Reset all data
+            </Button>
             <Inspector/>
         </Container>
     )
@@ -179,28 +199,32 @@ function BridgesPage() {
 
 enum AuthStatus { Authenticated = "Authenticated", Unauthenticated = "Unauthenticated", Authenticating = "Authenticating", Error = "Error" }
 interface BridgeItemProps {
+    id: string,
     name: string,
-    iconSrc?: string,
+    icon?: React.ReactNode,
     authStatus: AuthStatus,
+    lastSyncedTried?: number,
     lastSynced?: number,
     authenticatedChildren: React.ReactNode,
     authenticatingChildren?: React.ReactNode,
     unauthenticatedChildren: React.ReactNode,
 }
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'short' })
-function BridgeItem({ name, iconSrc, authStatus, lastSynced, authenticatedChildren, unauthenticatedChildren } : BridgeItemProps) {
+function BridgeItem({ id, name, icon, authStatus, lastSynced, lastSyncedTried, authenticatedChildren, unauthenticatedChildren } : BridgeItemProps) {
     const [isOpen, setIsOpen] = useState(false)
 
+    const syncText = (lastSyncedTried && (!lastSynced || (lastSyncedTried > lastSynced))) 
+        ? `Syncing...` 
+        : lastSynced 
+            ? `Synced at ${dateTimeFormatter.format(lastSynced)}`
+            : `Not synced yet`
     return (
         <div className="flex flex-col gap-4 -mx-4">
             <div className="flex p-4 gap-4 items-center hover:bg-neutral-100 rounded-lg cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-                { iconSrc
-                    ? <img src={iconSrc} alt={`${name} icon`} className="w-8 h-8"/>
-                    : <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-500">{name[0]}</div>
-                }
+                <LogoForSource source={id} className="w-8 h-8 rounded-lg"/>
                 <div className="flex flex-col flex-grow">
                     <h2 className="font-semibold">{name}</h2>
-                    <p className="text-stone-400">{authStatus}{lastSynced ? ` • Last synced at ${dateTimeFormatter.format(lastSynced)}` : ""}</p>
+                    <p className="text-stone-400">{authStatus} • {syncText}</p>
                 </div>
                 <CaretRight className={`transform transition-transform ${isOpen ? "rotate-90" : "rotate-0"}`}/>
             </div>

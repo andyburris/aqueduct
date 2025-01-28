@@ -20,7 +20,7 @@ const persistingServer = createWsServer(
       createMergeableStore(),
       pathId.replace(/[^a-zA-Z0-9]/g, '-') + '.json',
     ),
-		(store) => {
+		async (store) => {
       const [path, type] = pathId.split('/')
       if(type === "secure") {
         secureStores.set(path, store)
@@ -28,7 +28,7 @@ const persistingServer = createWsServer(
         sharedStores.set(path, store)
         const serverStore = createStore()
         const persister = createFilePersister(serverStore, path + '-server.json')
-        persister.startAutoLoad()
+        await persister.startAutoLoad()
         persister.startAutoSave()
         serverStores.set(path, serverStore)
       }

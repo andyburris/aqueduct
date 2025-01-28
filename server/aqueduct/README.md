@@ -7,13 +7,14 @@ val spotify = new SpotifyExtension()
 
 Most syncing starts with the user authenticating themselves, so we'll start our stream there. Extensions should have a guide for obtaining a code or token on the frontend, which will be the first value in our stream. We can pass it in using an external handle, or from another reactive source. 
 ```typescript
-const [spotifyCodeHandle, spotifyCode]: [(code: string) => void, Stream<string>] = Stream.handle<string>()
-// const spotifyCode = Stream.listener(emit => storage.listen("spotifyCode", emit)) // even easier with reactive storage solutions
-
+const [spotifyCode, spotifyCodeHandle]: [Stream<string>, (code: string) => void] = Stream.handle<string>()
 // elsewhere in the app, call the handle to kick off the stream
 // spotifyCodeHandle("<SPOTIFY-CODE>")
+
+// even easier with reactive storage frameworks
+const spotifyCode = Stream.listener(emit => storage.listen("spotifyCode", emit))
 ``` 
-Next, we use the extension to go through any exchange steps in the authentication process, which you can easily inject with persistence steps.
+Next, we use the extension to go through any exchange steps in the authentication process, which you can easily inject with your own storage, logging, etc.
 ```typescript
 const spotifyCodeExchange: Stream<string> = spotifyCode
     .map(code => spotify.auth.exchangeCodeForToken(code))
@@ -36,19 +37,19 @@ const spotifyAuthToken = spotify.authFlow({
 })
 ```
 
-With auth handled, we continue the stream by requesting the data we want. Each step won't run until the past one works, so we don't have to worry about requesting data before being signed in, for example. There are also useful helpers to easily handle refreshing. Extensions will usually offer API options (playlist filters, location for weather, etc.).
+With auth handled, we continue the stream by requesting the data we want. Each step won't run until the past one works, so we don't have to worry about requesting data before being signed in, for example. You can easily refresh with the `every` helper. Extensions will usually offer API options (file search, location for weather, etc.).
 ```typescript
 const playlists = spotifyAuthToken
     .every(seconds(30), storage["spotifySyncedAt"], syncedAt => storage["spotifySyncedAt"] = syncedAt)
     .map(token => spotify.playlists.getAll(token, { userOnly: true }))
 ```
 
-In the a basic scenario, we can just save the entire response to storage.
+In a basic scenario, we can just save the entire response to storage.
 ```typescript
 playlists
     .onEach(response => storage["spotifyPlaylists"] = response.data)
 ```
-However, there are a lot of scenarios where we'd rather not refresh a user's entire data each time, incurring unnecessary network requests or database writes. In these cases, Aqueduct allows us to pass in our current data, and produces a list of changes that we can use.
+But in most scenarios, we'd rather not refresh a user's entire data each time, incurring unnecessary network requests or database writes. In these cases, Aqueduct allows us to pass in our current data, and produces a list of changes that we can use.
 ```typescript
 const database = ... // generic database
 const incrementalPlaylists = spotifyAuthToken
@@ -58,7 +59,6 @@ const incrementalPlaylists = spotifyAuthToken
 incrementalPlaylists
     .onEach(response => 
         response.changes
-        .filter(change => change.path.match("data.playlists.*")
         .forEach(change => {
             if(change.type === "add") database.insert(change.data.id, change.data)
             if(change.type === "delete") database.remove(change.data.id)

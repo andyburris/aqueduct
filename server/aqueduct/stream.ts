@@ -31,9 +31,9 @@ export class Stream<T> {
      * stream.onEach(console.log);
      * trigger(42); // logs: 42
      */
-    static handle<T>(): [(value: T) => void, Stream<T>] {
+    static handle<T>(): [Stream<T>, (value: T) => void,] {
       const stream = new Stream<T>();
-      return [stream.emit.bind(stream), stream];
+      return [stream, stream.emit.bind(stream)];
     }
   
     /**

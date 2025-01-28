@@ -27,10 +27,14 @@ export class SpotifyExtension {
                         if (unchangedOriginal) {
                             fullPlaylists.push(unchangedOriginal)
                         } else {
-                            const tracks = await getAllPages(api.playlists.getPlaylistItems(p.id), offset => api.playlists.getPlaylistItems(p.id, undefined, undefined, 50, offset))
+                            const tracks = await getAllPages(
+                                api.playlists.getPlaylistItems(p.id), 
+                                offset => api.playlists.getPlaylistItems(p.id, undefined, undefined, 50, offset),
+                                1000
+                            )
                             fullPlaylists.push({ ...p, fullTracks: tracks } as FullSpotifyPlaylist)
                             console.log(`Finished syncing tracks for playlist ${playlists.indexOf(p) + 1}/${playlists.length}`)
-                            await new Promise(r => setTimeout(r, 500)) //delay to prevent rate limits
+                            await new Promise(r => setTimeout(r, 200)) //delay to prevent rate limits
                         }
                     }
                     return fullPlaylists
@@ -64,10 +68,12 @@ export class SpotifyExtension {
 
 async function getAllPages<T>(
     pagePromise: Promise<Page<T>>, 
-    getNext: (offset: number) => Promise<Page<T>>
+    getNext: (offset: number) => Promise<Page<T>>,
+    maxItems?: number
 ): Promise<T[]> {
     const page = await pagePromise
     while(page.next) {
+      if(maxItems && page.items.length >= maxItems) break
       const nextItems = await getNext(page.items.length)
       page.items.push(...nextItems.items)
       page.next = nextItems.next
