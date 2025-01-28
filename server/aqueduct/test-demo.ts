@@ -1,4 +1,4 @@
-import { Stream } from "./hotstream"
+import { Stream } from "./stream"
 
 export function testDemo() {
     const one = Stream.single(1)

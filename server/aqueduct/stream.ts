@@ -291,6 +291,62 @@ export class Stream<T> {
 
         return resultStream;
     }
+
+    /**
+     * Transforms values in the stream using a mapping function that can return either a value or a Promise
+     * @param fn Mapping function that returns either U or Promise<U>
+     * @param concurrency Optional maximum number of concurrent promise executions
+     */
+    mapConcurrent<U>(fn: (value: T) => U | Promise<U>, concurrency?: number): Stream<U> {
+      const resultStream = new Stream<U>();
+      let running = 0;
+      const queue: { value: T, resolve: () => void }[] = [];
+
+      const tryExecuteNext = () => {
+        if (!concurrency || running >= concurrency || queue.length === 0) return;
+        
+        const next = queue.shift();
+        if (next) {
+          next.resolve();
+        }
+      };
+
+      const processValue = (value: T) => {
+        const execute = () => {
+          running++;
+          const result = fn(value);
+          
+          if (result instanceof Promise) {
+            result.then(resolvedValue => {
+              resultStream.emit(resolvedValue);
+              running--;
+              tryExecuteNext();
+            });
+          } else {
+            resultStream.emit(result);
+            running--;
+            tryExecuteNext();
+          }
+        };
+
+        if (!concurrency || running < concurrency) {
+          execute();
+        } else {
+          queue.push({ 
+            value, 
+            resolve: execute
+          });
+        }
+      };
+
+      this.transformFn = processValue;
+
+      if (this.lastValue !== null) {
+        processValue(this.lastValue.value);
+      }
+
+      return resultStream;
+    }
   }
   
   export const seconds = (n: number) => n * 1000;

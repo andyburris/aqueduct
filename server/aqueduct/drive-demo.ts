@@ -1,8 +1,8 @@
+import { flatten, unflatten } from "flat";
 import { Cell, Row, Store, Table } from "tinybase";
 import { loadCellAndListen, loadRowAndListen } from "./demo-utils";
 import { GoogleCredentials, GoogleDriveExtension, GoogleDriveFile, GoogleDriveFileOptions } from "./extensions/googledrive";
-import { seconds, Stream } from "./hotstream";
-import { flatten, unflatten } from "flat";
+import { seconds, Stream } from "./stream";
 
 const syncInfo: GoogleDriveFileOptions = {
     pageSize: 50,

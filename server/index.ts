@@ -3,6 +3,7 @@ import { createFilePersister } from 'tinybase/persisters/persister-file';
 import { createWsServer } from 'tinybase/synchronizers/synchronizer-ws-server';
 import { WebSocketServer } from 'ws';
 import { syncDrive } from './aqueduct/drive-demo';
+import { syncSpotify } from './aqueduct/spotify-demo';
 
 const PORT = 8050
 
@@ -36,7 +37,7 @@ const persistingServer = createWsServer(
         const secureStore = secureStores.get(path)! 
         const serverStore = serverStores.get(path)!
         syncDrive(secureStore, sharedStore, serverStore)
-        // syncSpotify(secureStore, sharedStore, localStore)
+        syncSpotify(secureStore, sharedStore, serverStore)
         console.log("Syncing...")
         // testDemo()
       }

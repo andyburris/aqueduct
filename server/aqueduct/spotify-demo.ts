@@ -1,15 +1,12 @@
-import { Row, Store, Table } from 'tinybase';
-import { loadCellAndListen, loadRowAndListen } from './demo-utils';
-import { SpotifyExtension } from './extensions/spotify';
-import { Stream, seconds } from './hotstream';
-import { AccessToken, SimplifiedPlaylist } from '@spotify/web-api-ts-sdk';
+import { AccessToken } from '@spotify/web-api-ts-sdk';
 import { flatten, unflatten } from 'flat';
+import { Row, Store, Table } from 'tinybase';
+import { loadRowAndListen } from './demo-utils';
+import { FullSpotifyPlaylist, SpotifyExtension } from './extensions/spotify';
+import { Stream, seconds } from './stream';
 
 
 export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore: Store) {
-    // Mock storage for demo purposes
-    const storage: Record<string, any> = {};
-
     // Initialize
     const spotify = new SpotifyExtension({ 
       clientID: process.env.SPOTIFY_CLIENT_ID ?? "",
@@ -32,11 +29,12 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
         syncedAt => sharedStore.setCell("extensions", "spotify", "lastSyncedAt", syncedAt)
     )
     .onEach(() => console.log('Syncing playlists...'))
-    .map(token => {
+    .mapConcurrent(token => {
       const previousPlaylistsTable = serverStore.getTable("spotify")
-      const previousPlaylists = Object.values(previousPlaylistsTable).map(p => unflatten(p) as SimplifiedPlaylist)
+      const previousPlaylists = Object.values(previousPlaylistsTable).map(p => unflatten(p) as FullSpotifyPlaylist)
       return spotify.playlists.getAll(token, previousPlaylists)
-    })
+    }, 1)
+    .onEach(playlists => console.log(`Finished syncing ${playlists.data.length} playlists...`))
     .onEach(playlists => {
       const flattened = Object.fromEntries(playlists.data.map(p => [p.id, flatten(p)])) as Table
       serverStore.setTable("spotify", flattened)
@@ -47,7 +45,7 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
         if(c.operation === "update") return [a, [...u, c.value], d]
         if(c.operation === "delete") return [a, u, [...d, c.value]]
         return [a, u, d]
-      }, [[], [], []] as [SimplifiedPlaylist[], SimplifiedPlaylist[], SimplifiedPlaylist[]])
+      }, [[], [], []] as [FullSpotifyPlaylist[], FullSpotifyPlaylist[], FullSpotifyPlaylist[]])
 
       const additionsAsNotes: [string, any][] = additions.map(asNote)
       const updatesAsNotes: [string, any][] = updates.map(asNote)
@@ -61,15 +59,18 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
     });
 }
 
-function asNote(playlist: SimplifiedPlaylist): [string, any] {
+function asNote(playlist: FullSpotifyPlaylist): [string, any] {
+  const addedDates = playlist.fullTracks.map(t => Date.parse(t.added_at))
+  const earliestTrackAdded = Math.min(...addedDates)
+  const latestTrackAdded = Math.max(...addedDates)
   const note = {
       id: playlist.id,
       title: playlist.name,
       content: `${playlist.tracks?.total} tracks`,
       source: "spotify",
-      timestamp: Date.now(),
-      editedTimestamp: Date.now(),
-      createdTimestamp: Date.now(),
+      timestamp: latestTrackAdded,
+      editedTimestamp: latestTrackAdded,
+      createdTimestamp: earliestTrackAdded,
       syncedTimestamp: Date.now(),
   }
   return [playlist.id, { ...note }]
