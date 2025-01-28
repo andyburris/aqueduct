@@ -1,16 +1,20 @@
-type Change = {
-    path: string,
+export type SyncResult<T> = {
+    data: T,
+    changes: Change[],
+}
+export type Change = {
+    path?: string,
     operation: "add" | "delete" | "update",
     value: any,
 }
-function diff(original: any, updated: any, path: string = ''): Change[] {
+export function diffObject(original: any, updated: any, path: string = ''): Change[] {
     const changes: Change[] = []
     for(const key in updated) {
         const currentPath = path ? `${path}.${key}` : key
         if (!original.hasOwnProperty(key)) {
             changes.push({ path: currentPath, operation: "add", value: updated[key] })
         } else if (typeof updated[key] === 'object' && updated[key] !== null && typeof original[key] === 'object' && original[key] !== null) {
-            changes.push(...diff(original[key], updated[key], currentPath))
+            changes.push(...diffObject(original[key], updated[key], currentPath))
         } else if (original[key] !== updated[key]) {
             changes.push({ path: currentPath, operation: "update", value: updated[key] })
         }

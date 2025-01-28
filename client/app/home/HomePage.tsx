@@ -2,7 +2,7 @@
 
 import { Container } from "@/app/common/Container";
 import { Bridge, GearSix } from "@phosphor-icons/react";
-import { useRowIds, useTable } from "tinybase/ui-react";
+import { useResultSortedRowIds, useRowIds, useSortedRowIds, useTable } from "tinybase/ui-react";
 import { NoteItem } from "./NoteItem";
 import { Button, Link } from "../common/Components";
 
@@ -30,8 +30,9 @@ function Header() {
 }
 
 function Notes() {
-    const notesRows = useRowIds("notes")
     const table = useTable("notes")
+    const notesRows = useSortedRowIds("notes", "timestamp", true)
+
     return (
         <div className="flex flex-col gap-2">
             { notesRows.map((rowId) => {

@@ -9,6 +9,8 @@ import { Button } from '@/app/common/Components';
 import { Inspector } from 'tinybase/ui-react-inspector';
 import { PageProvider } from '@/app/page';
 import { Status } from 'tinybase/persisters';
+import { googleOauthStateKey } from './googleauth';
+import { useOnLoadStoresEffect } from '../useOnLoadStoresEffect';
 
 export default function Page() {
     return (
@@ -19,65 +21,41 @@ export default function Page() {
 }
 
 function GoogleOAuth2CallbackPage() {
-  const router = useRouter()
 
-  const sharedStore = useStore()
-  const secureStore = useStore("secure")
-  const [isYetSaved, setIsYetSaved] = useState(false)
-  const secureSyncListener = useSynchronizerStatusListener(
-    (synchronizer, status) => status === 0 && isYetSaved && router.push('/bridges'),
-    [isYetSaved], 
-    "secure")
+  useOnLoadStoresEffect((secureStore, sharedStore, router) => {
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const storedState = localStorage.getItem(googleOauthStateKey);
 
-  useEffect(() => {
-    const handleOAuthCallback = async () => {
-      if(!secureStore) {
-        console.error("No secure store")
-        return
-      } else if(!sharedStore) {
-        console.error("No shared store")
-        return
+    console.log("got google response: code = ", code, "state = ", state, "storedState = ", storedState)
+
+    if (!code) {
+      // No code means something went wrong
+      router.push('/auth-error');
+      return;
+    }
+
+    try {
+      // Verify state and exchange code for tokens
+      
+      if (state !== storedState) {
+        throw new Error('State verification failed (expected: ' + storedState + ', got: ' + state + ')');
       }
+      
+      secureStore.setCell("auth", "google-drive", "code", code);
+      sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticating");
 
-      // Parse URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-      const storedState = localStorage.getItem('oauth_state');
+      // Clear the stored state
+      localStorage.removeItem('oauth_state');
 
-      console.log("got google response: code = ", code, "state = ", state, "storedState = ", storedState)
 
-      if (!code) {
-        // No code means something went wrong
-        router.push('/auth-error');
-        return;
-      }
-
-      try {
-        // Verify state and exchange code for tokens
-        
-        if (state !== storedState) {
-          throw new Error('State verification failed (expected: ' + storedState + ', got: ' + state + ')');
-        }
-
-        
-        secureStore.setCell("auth", "google-drive", "code", code);
-        sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticating");
-
-        // Clear the stored state
-        localStorage.removeItem('oauth_state');
-
-        // Redirect to dashboard or desired page
-        setIsYetSaved(true)
-
-      } catch (error) {
-        console.error('OAuth callback error:', error);
-        // router.push('/auth-error');
-      }
-    };
-
-    handleOAuthCallback();
-  }, [router, secureStore]);
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      // router.push('/auth-error');
+    }
+  });
 
   // Show a loading state while processing
   return (

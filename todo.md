@@ -4,6 +4,9 @@
 - [ ] Figure out triggers
     - [ ] Platform demo (Reminders)
 
+### User DX
+- [ ] add error handling
+
 ### Future
 - [ ] Multiple accounts / types of sync
     - multiple weather locations

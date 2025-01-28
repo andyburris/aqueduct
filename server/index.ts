@@ -1,9 +1,8 @@
-import { createMergeableStore, Store } from 'tinybase';
+import { createMergeableStore, createStore, Store } from 'tinybase';
 import { createFilePersister } from 'tinybase/persisters/persister-file';
 import { createWsServer } from 'tinybase/synchronizers/synchronizer-ws-server';
 import { WebSocketServer } from 'ws';
-import { driveDemo } from './aqueduct/drive-demo';
-import { testDemo } from './aqueduct/test-demo';
+import { syncDrive } from './aqueduct/drive-demo';
 
 const PORT = 8050
 
@@ -11,6 +10,7 @@ console.log(`Starting server at ws://localhost:${PORT}`)
 
 const sharedStores = new Map<string, Store>()
 const secureStores = new Map<string, Store>()
+const serverStores = new Map<string, Store>()
 
 const persistingServer = createWsServer(
   new WebSocketServer({port: PORT}),
@@ -25,11 +25,18 @@ const persistingServer = createWsServer(
         secureStores.set(path, store)
       } else if (type === "shared") {
         sharedStores.set(path, store)
+        const serverStore = createStore()
+        const persister = createFilePersister(serverStore, path + '-server.json')
+        persister.startAutoLoad()
+        persister.startAutoSave()
+        serverStores.set(path, serverStore)
       }
-      if(sharedStores.has(path) && secureStores.has(path)) {
+      if(sharedStores.has(path) && secureStores.has(path) && serverStores.has(path)) {
         const sharedStore = sharedStores.get(path)!
         const secureStore = secureStores.get(path)! 
-        driveDemo(secureStore, sharedStore)
+        const serverStore = serverStores.get(path)!
+        syncDrive(secureStore, sharedStore, serverStore)
+        // syncSpotify(secureStore, sharedStore, localStore)
         console.log("Syncing...")
         // testDemo()
       }

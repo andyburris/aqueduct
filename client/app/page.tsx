@@ -1,10 +1,10 @@
 "use client"
 
 import ReconnectingWebSocket from "reconnecting-websocket";
-import { createMergeableStore, MergeableStore } from "tinybase";
+import { createMergeableStore, createQueries, MergeableStore } from "tinybase";
 import { createLocalPersister } from "tinybase/persisters/persister-browser";
 import { createWsSynchronizer } from "tinybase/synchronizers/synchronizer-ws-client";
-import { Provider, useCreateMergeableStore, useCreatePersister, useCreateSynchronizer } from "tinybase/ui-react";
+import { Provider, useCreateMergeableStore, useCreatePersister, useCreateQueries, useCreateSynchronizer } from "tinybase/ui-react";
 import { Inspector } from "tinybase/ui-react-inspector";
 import { HomePage } from "./home/HomePage";
 
