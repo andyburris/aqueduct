@@ -43,9 +43,10 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
         if(c.operation === "delete") return [a, u, [...d, c.value]]
         return [a, u, d]
       }, [[], [], []] as [FullSpotifyPlaylist[], FullSpotifyPlaylist[], FullSpotifyPlaylist[]])
+      console.log(`Got ${additions.length} additions, ${updates.length} updates, and ${deletions.length} deletions`)
 
-      const additionsAsNotes: [string, any][] = additions.map(asNote)
-      const updatesAsNotes: [string, any][] = updates.map(asNote)
+      const additionsAsNotes: [string, any][] = additions.map(p => asNote(p))
+      const updatesAsNotes: [string, any][] = updates.map(p => asNote(p, true))
       sharedStore.transaction(() => {
         additionsAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
         updatesAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
@@ -56,7 +57,7 @@ export function syncSpotify(secureStore: Store, sharedStore: Store, serverStore:
     });
 }
 
-function asNote(playlist: FullSpotifyPlaylist): [string, any] {
+function asNote(playlist: FullSpotifyPlaylist, isUpdated?: boolean): [string, any] {
   const addedDates = playlist.fullTracks.map(t => Date.parse(t.added_at))
   const earliestTrackAdded = Math.min(...addedDates)
   const latestTrackAdded = Math.max(...addedDates)
@@ -66,7 +67,7 @@ function asNote(playlist: FullSpotifyPlaylist): [string, any] {
       content: `${playlist.tracks?.total} tracks`,
       source: "spotify",
       timestamp: latestTrackAdded,
-      editedTimestamp: latestTrackAdded,
+      editedTimestamp: isUpdated ? Date.now() : latestTrackAdded,
       createdTimestamp: earliestTrackAdded,
       syncedTimestamp: Date.now(),
   }
@@ -74,5 +75,5 @@ function asNote(playlist: FullSpotifyPlaylist): [string, any] {
 }
 
 function isAccessToken(token: any): token is AccessToken {
-    return "access_token" in token && "token_type" in token && "expires_in" in token && "scope" in token && "expires" in token;
+    return "access_token" in token && "token_type" in token && "expires_in" in token && "refresh_token" in token && "expires" in token;
 }

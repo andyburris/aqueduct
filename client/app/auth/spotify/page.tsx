@@ -23,7 +23,8 @@ function SpotifyCallbackPage() {
             async (token) => {
                 console.log("Got Spotify token: ", token)
                 secureStore.setRow("auth", "spotify", token as any);
-                sharedStore.setCell("extensions", "spotify", "authStatus", "authenticating");          
+                sharedStore.setCell("extensions", "spotify", "authStatus", "authenticating");  
+                localStorage.removeItem("spotify-sdk:AuthorizationCodeWithPKCEStrategy:token")        
             }
         )
     })

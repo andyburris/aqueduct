@@ -5,6 +5,6 @@ export function redirectSpotifyAuth() {
         "b10a0181d9ac49b28846cbd7413193e1", 
         "https://localhost:3000/auth/spotify",
         ["playlist-read-private"],
-        async (token) => { throw new Error("Never called") }
+        async (token) => { throw new Error("Should never be called--did you clear the previous token correctly?") }
     )
 }

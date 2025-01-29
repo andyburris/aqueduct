@@ -43,7 +43,7 @@ export class SpotifyExtension {
                     const additions = playlists.filter(newPlaylist => !previous?.find(p => p.id === newPlaylist.id))
                     const updates = playlists.filter(newPlaylist => {
                         const oldPlaylist = previous?.find(p => p.id === newPlaylist.id)
-                        return newPlaylist.snapshot_id !== oldPlaylist?.snapshot_id
+                        return oldPlaylist && newPlaylist.snapshot_id !== oldPlaylist?.snapshot_id
                     })
                     const deletions = previous?.filter(p => !playlists.find(newPlaylist => newPlaylist.id === p.id)) ?? []
                     const result: SyncResult<FullSpotifyPlaylist[]> = {
