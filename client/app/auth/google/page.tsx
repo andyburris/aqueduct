@@ -7,16 +7,16 @@ import { createStore, Row } from 'tinybase';
 import { useSetCellCallback, useSetRowCallback, useStore, useSynchronizerStatusListener } from 'tinybase/ui-react';
 import { Button } from '@/app/common/Components';
 import { Inspector } from 'tinybase/ui-react-inspector';
-import { PageProvider } from '@/app/page';
 import { Status } from 'tinybase/persisters';
 import { googleOauthStateKey } from './googleauth';
 import { useOnLoadStoresEffect } from '../useOnLoadStoresEffect';
+import { JazzAndAuth } from '@/app/common/JazzAndAuth';
 
 export default function Page() {
     return (
-        <PageProvider>
+        <JazzAndAuth>
             <GoogleOAuth2CallbackPage/>
-        </PageProvider>
+        </JazzAndAuth>
     )
 }
 

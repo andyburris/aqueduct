@@ -21,8 +21,8 @@ const libreCaslonCondensed = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Skybridge Demo",
-  description: "A demonstration of Skybridge",
+  title: "Aqueduct Demo",
+  description: "A demonstration of Aqueduct",
 };
 
 export default function RootLayout({

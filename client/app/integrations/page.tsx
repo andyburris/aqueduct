@@ -1,24 +1,24 @@
 "use client"
 
-import { Bridge, CaretRight, CodeSimple } from "@phosphor-icons/react";
+import { CaretRight, CodeSimple } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FileTrigger, Input, Label, TextField } from "react-aria-components";
 import { useCell, useDelRowCallback, useSetCellCallback, useStore, useTable } from "tinybase/ui-react";
-import { Inspector } from "tinybase/ui-react-inspector";
 import { generateGoogleAuthURL } from "../auth/google/googleauth";
 import { redirectSpotifyAuth } from "../auth/spotify/spotifyauth";
 import { Button, Link } from "../common/Components";
 import { Container } from "../common/Container";
-import { PageProvider } from "../page";
-import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { GoogleDriveLogo, LogoForSource, SpotifyLogo } from "../common/Logos";
+import { FountainLogo } from "../common/FountainLogo";
+import { Header } from "../common/Header";
+import { JazzAndAuth } from "../common/JazzAndAuth";
+import { LogoForSource } from "../common/Logos";
 
 export default function Page() {
     return (
-        <PageProvider>
+        <JazzAndAuth>
             <BridgesPage/>
-        </PageProvider>
+        </JazzAndAuth>
     )
 }
 
@@ -44,11 +44,15 @@ function BridgesPage() {
     const removeSpotifyAuth = useDelRowCallback("auth", "spotify", "secure")
     const updateSpotifyAuthStatus = useSetCellCallback("extensions", "spotify", "authStatus", (v: string) => v, [])
 
-
     return (
         <Container>
-            <Header/>
-            <div className="flex flex-col">
+            <Header>
+                <Link kind="ghost" href="/" className="-ml-2 -mr-3 -my-1">
+                    <FountainLogo />
+                </Link>
+                <p className="text-2xl font-serif font-semibold tracking-tight">• Integrations</p>
+            </Header>
+            <div className="flex flex-col px-5">
                 <BridgeItem
                     id="supernotes"
                     name="Supernotes"
@@ -192,7 +196,6 @@ function BridgesPage() {
             >
                 Reset all data
             </Button>
-            <Inspector/>
         </Container>
     )
 }
@@ -231,20 +234,6 @@ function BridgeItem({ id, name, icon, authStatus, lastSynced, lastSyncedTried, a
             {isOpen && authStatus == AuthStatus.Authenticated && <div className="flex flex-col gap-1 pl-16">{authenticatedChildren}</div>}
             {isOpen && authStatus == AuthStatus.Authenticating && <div className="flex flex-col gap-1 pl-16">{authenticatedChildren ?? <p>Authenticating...</p>}</div>}
             {isOpen && authStatus == AuthStatus.Unauthenticated && <div className="flex flex-col gap-1 pl-16">{unauthenticatedChildren}</div>}
-        </div>
-    )
-}
-
-function Header() {
-    return (
-        <div className="flex items-center -m-2">
-            <Link href="/" className="flex gap-3">
-                <div className="size-8 rounded-lg flex items-center justify-center bg-neutral-100 border border-neutral-300 text-neutral-500">
-                    <Bridge size={24}/>
-                </div>
-                <h1 className="text-4xl/[50px] font-serif font-semibold tracking-tight grow text-neutral-500">Skybridge •</h1>
-            </Link>
-            <h1 className="text-4xl/[50px] font-serif font-semibold tracking-tight grow">Bridges</h1>
         </div>
     )
 }

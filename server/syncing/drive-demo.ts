@@ -1,8 +1,9 @@
 import { flatten, unflatten } from "flat";
 import { Cell, Row, Store, Table } from "tinybase";
 import { loadCellAndListen, loadRowAndListen } from "./demo-utils";
-import { GoogleCredentials, GoogleDriveExtension, GoogleDriveFile, GoogleDriveFileOptions } from "./extensions/googledrive";
-import { seconds, Stream } from "./stream";
+import { GoogleCredentials, GoogleDriveExtension, GoogleDriveFile, GoogleDriveFileOptions } from "../../aqueduct/extensions/googledrive";
+import { Stream } from "../../aqueduct/stream";
+import { seconds } from "../../aqueduct/utils";
 
 const syncInfo: GoogleDriveFileOptions = {
     pageSize: 50,
@@ -17,9 +18,9 @@ export function syncDrive(secureStore: Store, sharedStore: Store, serverStore: S
     })
 
     const code = Stream
-        .listener<Cell | undefined>(emit => loadCellAndListen(secureStore, "auth", "google-drive", "code", emit))
+        .fromListener<Cell | undefined>(emit => loadCellAndListen(secureStore, "auth", "google-drive", "code", emit))
         .map(c => c?.toString())
-        .filterType(c => c !== undefined)
+        .filter(c => c !== undefined)
     const exchangeCodeForToken = code
         .onEach(() => sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticating"))
         .map(code => drive.exchangeCodeForToken(code))
@@ -28,14 +29,15 @@ export function syncDrive(secureStore: Store, sharedStore: Store, serverStore: S
             secureStore.delCell("auth", "google-drive", "code")
             sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticated")
         })
-        .filterType(t => isGoogleCredentials(t))
+        .filter(t => isGoogleCredentials(t))
     const storedToken = Stream
-        .listener<Row | undefined>(emit => loadRowAndListen(secureStore, "auth", "google-drive", emit))
+        .fromListener<Row | undefined>(emit => loadRowAndListen(secureStore, "auth", "google-drive", emit))
         .map(t => t as unknown)
-        .filterType(t => isGoogleCredentials(t))
+        .filter(t => isGoogleCredentials(t))
 
-    const token = Stream.or(exchangeCodeForToken, storedToken)
-        .filterType(t => !!t)
+    const token = Stream.combine(exchangeCodeForToken, storedToken)
+        .map(([a, b]) => a || b)
+        .filter(t => !!t)
 
     const files = token
         .every(
@@ -51,26 +53,18 @@ export function syncDrive(secureStore: Store, sharedStore: Store, serverStore: S
  
     files
         // .onEach(files => sharedStore.setCell("extensions", "google-drive", "files", files))
-        .onEach(files => {
+        .listen(files => {
             const flattened = Object.fromEntries(files.data.map(f => [f.id, flatten(f)])) as Table
             // console.log("flattened: ", flattened)
             serverStore.setTable("google-drive", flattened)
+            console.log(`Got ${files.changes.additions.length} additions, ${files.changes.updates.length} updates, and ${files.changes.deletions.length} deletions`)
 
-            const [additions, updates, deletions] = files.changes.reduce(([a, u, d], c) => {
-                if(c.operation === "add") return [[...a, c.value], u, d]
-                if(c.operation === "update") return [a, [...u, c.value], d]
-                if(c.operation === "delete") return [a, u, [...d, c.value]]
-                return [a, u, d]
-            }, [[], [], []] as [GoogleDriveFile[], GoogleDriveFile[], GoogleDriveFile[]])
-
-            console.log("Additions: ", additions, "Updates: ", updates, "Deletions: ", deletions)
-
-            const additionsAsNotes: [string, any][] = additions.map(asNote)
-            const updatesAsNotes: [string, any][] = updates.map(asNote)
-            sharedStore.transaction(() => {
+            const additionsAsNotes: [string, any][] = files.changes.additions.map(f => asNote(f.value))
+            const updatesAsNotes: [string, any][] = files.changes.updates.map(f => asNote(f.value))
+                  sharedStore.transaction(() => {
                 additionsAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
                 updatesAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
-                deletions.forEach(p => sharedStore.delRow("notes", p.id))
+                files.changes.deletions.forEach(f => sharedStore.delRow("notes", f.value.id))
             })
 
             sharedStore.setCell("extensions", "google-drive", "lastSyncedAt", Date.now())

@@ -1,6 +1,10 @@
 export type SyncResult<T> = {
     data: T,
-    changes: Change[],
+    changes: SyncResultChanges,
+}
+export class SyncResultChanges {
+    constructor(public additions: Change[], public updates: Change[], public deletions: Change[]) {}
+    all() { return [...this.additions, ...this.updates, ...this.deletions] }
 }
 export type Change = {
     path?: string,
@@ -27,3 +31,5 @@ export function diffObject(original: any, updated: any, path: string = ''): Chan
     }
     return changes
 }
+
+export function seconds(s: number) { return s * 1000 }

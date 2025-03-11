@@ -1,5 +1,5 @@
 import { AccessToken, Page, PlaylistedTrack, SimplifiedPlaylist, SimplifiedTrack, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
-import { Change, diffObject, SyncResult } from "../utils";
+import { Change, diffObject, SyncResult, SyncResultChanges } from "../utils";
 
 export interface FullSpotifyPlaylist extends SimplifiedPlaylist {
     fullTracks: PlaylistedTrack<Track>[]
@@ -48,11 +48,11 @@ export class SpotifyExtension {
                     const deletions = previous?.filter(p => !playlists.find(newPlaylist => newPlaylist.id === p.id)) ?? []
                     const result: SyncResult<FullSpotifyPlaylist[]> = {
                         data: playlists,
-                        changes: [
-                            ...additions.map(p => ({ operation: "add", value: p } as Change)),
-                            ...updates.map(p => ({ operation: "update", value: p } as Change)),
-                            ...deletions.map(p => ({ operation: "delete", value: p } as Change)),
-                        ]
+                        changes: new SyncResultChanges(
+                            additions.map(p => ({ operation: "add", value: p } as Change)),
+                            updates.map(p => ({ operation: "update", value: p } as Change)),
+                            deletions.map(p => ({ operation: "delete", value: p } as Change)),
+                        )
                     }
                     return result
                 })

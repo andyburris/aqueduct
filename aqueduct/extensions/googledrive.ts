@@ -1,5 +1,5 @@
 import * as google from "googleapis"
-import { Change, SyncResult } from "../utils"
+import { Change, SyncResult, SyncResultChanges } from "../utils"
 
 export type GoogleCredentials = google.Auth.Credentials
 export type GoogleDriveFileOptions = google.drive_v3.Params$Resource$Files$List
@@ -57,11 +57,11 @@ export class GoogleDriveExtension {
                 const deletions = previous?.filter(p => !response!.data!.files!.find(f => f.id === p.id))
                 const result: SyncResult<GoogleDriveFile[]> = {
                     data: response!.data!.files!,
-                    changes: [
-                        ...additions.map(f => ({ operation: "add", value: f } as Change)),
-                        ...updates.map(f => ({ operation: "update", value: f } as Change)),
-                        ...deletions!.map(f => ({ operation: "delete", value: f } as Change)),
-                    ]
+                    changes: new SyncResultChanges(
+                        additions.map(f => ({ operation: "add", value: f } as Change)),
+                        updates.map(f => ({ operation: "update", value: f } as Change)),
+                        deletions!.map(f => ({ operation: "delete", value: f } as Change)),
+                    )
                 }
                 resolve(result)
             })
