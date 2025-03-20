@@ -1,5 +1,5 @@
+import { FountainUserAccount } from "@/app/jazz/schema/fountain-schema";
 import { JazzProvider } from "jazz-react";
-import { FountainUserAccount } from "@/../jazz/schema/fountain-schema";
 
 const localAddress = "ws://127.0.0.1:4200"
 

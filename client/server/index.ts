@@ -1,7 +1,7 @@
 import { startWorker } from "jazz-nodejs";
-import { InboxMessage, SpotifyMessage, WorkerAccount } from "../jazz/schema/worker";
+import { SpotifyIntegration } from "../app/jazz/schema/integrations/spotify";
+import { InboxMessage, SpotifyMessage, WorkerAccount } from "../app/jazz/schema/worker";
 import { syncSpotify } from "./syncing/spotify-demo";
-import { SpotifyIntegration } from "../jazz/schema/integrations/spotify";
 
 const localAddress = "ws://127.0.0.1:4200"
 

@@ -1,6 +1,6 @@
 import { Playlist, PlaylistedTrack, SimplifiedPlaylist, Track } from "@spotify/web-api-ts-sdk";
 import { TimelineItem } from "../timeline";
-import { FullSpotifyPlaylist } from "../../../../../aqueduct/extensions/spotify";
+import { FullSpotifyPlaylist } from "aqueduct";
 
 export class SpotifyPlaylistTimelineItem implements TimelineItem {
     static SOURCE = "Spotify"

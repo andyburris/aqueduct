@@ -1,5 +1,5 @@
 import { PlaylistedTrack, Track, SimplifiedPlaylist, ExternalUrls, SimplifiedAlbum, SimplifiedArtist, ExternalIds } from "@spotify/web-api-ts-sdk"
-import { FullSpotifyPlaylist } from "../../../aqueduct/extensions/spotify"
+import { FullSpotifyPlaylist } from "aqueduct"
 
 export const MOCK_PLAYLISTS: FullSpotifyPlaylist[] = [
     { 

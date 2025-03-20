@@ -4,7 +4,7 @@
  */
 
 import { Account, CoMap, Profile, co } from "jazz-tools";
-// import { SpotifyIntegration } from "./integrations/spotify";
+import { SpotifyIntegration } from "./integrations/spotify";
 
 /** The account profile is an app-specific per-user public `CoMap`
  *  where you can store top-level objects for that user */
@@ -21,7 +21,7 @@ export class FountainProfile extends Profile {
 /** The account root is an app-specific per-user private `CoMap`
  *  where you can store top-level objects for that user */
 export class FountainRoot extends CoMap {
-  // spotifyIntegration = co.ref(SpotifyIntegration)
+  spotifyIntegration = co.ref(SpotifyIntegration)
 }
 
 export class FountainUserAccount extends Account {
@@ -32,10 +32,9 @@ export class FountainUserAccount extends Account {
    */
   migrate() {
     const account = this
-    console.log("creating account, root = ", this.root, "_refs.root = ", this._refs.root)
     if (this.root === undefined) {
       this.root = FountainRoot.create({
-        // spotifyIntegration: SpotifyIntegration.create({}, account)
+        spotifyIntegration: SpotifyIntegration.create({}, account)
       }, account);
     //   this.root = FountainRoot.create(
     //     {

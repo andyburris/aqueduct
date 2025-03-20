@@ -1,4 +1,7 @@
 {
+  "name": "aqueduct",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@spotify/web-api-ts-sdk": "^1.2.0",

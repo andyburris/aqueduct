@@ -3,7 +3,7 @@ import { Integration } from "../integrations";
 import { AccessToken, SimplifiedPlaylist } from "@spotify/web-api-ts-sdk";
 import { CoOf } from "../../utils";
 import { cojson } from "../../test";
-import { FullSpotifyPlaylist } from "../../../aqueduct/extensions/spotify";
+import { FullSpotifyPlaylist } from "aqueduct";
 
 export class SpotifyIntegration extends Integration {
     authentication = co.optional.json<AccessToken>();
