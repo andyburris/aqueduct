@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+    font-family: 'Libre Caslon Condensed';
+    src: local('Libre Caslon Condensed'), url(./theme/fonts/LibreCaslonCondensed.ttf) format('ttf');
+}
+
+@font-face {
+    font-family: 'Geist VF';
+    src: local('Geist VF'), url(./theme/fonts/GeistVF.woff) format('woff');
+}

@@ -21,7 +21,7 @@ export class SpotifyExtension {
                     //     const tracks = await getAllPages(api.playlists.getPlaylistItems(p.id), offset => api.playlists.getPlaylistItems(p.id, undefined, undefined, 50, offset))
                     //     return { ...p, fullTracks: tracks } as FullSpotifyPlaylist
                     // }))
-                    const fullPlaylists = []
+                    const fullPlaylists: FullSpotifyPlaylist[] = []
                     for (const p of playlists) {
                         const unchangedOriginal = previous?.find(pp => pp.id === p.id && pp.snapshot_id === p.snapshot_id)
                         if (unchangedOriginal) {
