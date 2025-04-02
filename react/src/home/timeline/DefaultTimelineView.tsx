@@ -19,7 +19,7 @@ export function DefaultTimelineView({ item }: { item: TimelineItem }) {
 export function BasicTimelineView({ item, children }: { item: TimelineItem, children: React.ReactElement }) {
     return (
         <div className="flex gap-3">
-            <LogoForSource source={item.source.toLowerCase()} className="w-6 h-6 rounded-2xl" />
+            <LogoForSource source={item.source.toLowerCase()} className="w-6 h-6 rounded-2xl text-sm" />
             <div className="grow">
                 {children}
             </div>

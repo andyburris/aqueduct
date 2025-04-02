@@ -14,6 +14,7 @@ import { DayItem } from "./DayItem";
 import { TimeGapView } from "./TimeGapView";
 import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
 import { TestNote } from "../../jazz/schema/integrations/test-integration";
+import { JazzInspector } from "jazz-inspector";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -34,7 +35,6 @@ export function HomePage() {
 }
 
 function Timeline() {
-    // const { me } = useAccount({ resolve: { root: {} }})
     const { me } = useAccount({ resolve: { root: {
         integrations: {
             spotifyIntegration: { playlists: true },
@@ -42,9 +42,6 @@ function Timeline() {
         }
     } }})
     if (!me) return <p>Loading...</p>
-    // const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations?.spotifyIntegration?.playlists
-    //     ?.flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
-    //     ?? []
     const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations.spotifyIntegration.playlists
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
     const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.notes
@@ -64,6 +61,7 @@ function Timeline() {
                 else if (isTimelineItem(item)) return <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
                 else return <DayItem date={item} key={item.toISOString()}/>
             }) }
+            <JazzInspector/>
         </div>
     )
 }

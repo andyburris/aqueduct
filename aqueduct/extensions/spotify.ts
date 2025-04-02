@@ -14,6 +14,7 @@ export class SpotifyExtension {
         getAll: (authToken: AccessToken, previous?: FullSpotifyPlaylist[]) => {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
             return getAllPages(api.currentUser.playlists.playlists(), offset => api.currentUser.playlists.playlists(50, offset))
+                .then(playlists => playlists.slice(0, 5))
                 .then(async playlists => {
                     // return Promise.all(playlists.map(async p => {
                     //     const unchangedOriginal = previous?.find(pp => pp.id === p.id && pp.snapshot_id === p.snapshot_id)
@@ -32,7 +33,7 @@ export class SpotifyExtension {
                                 offset => api.playlists.getPlaylistItems(p.id, undefined, undefined, 50, offset),
                                 1000
                             )
-                            fullPlaylists.push({ ...p, fullTracks: tracks } as FullSpotifyPlaylist)
+                            fullPlaylists.push({ ...p, fullTracks: tracks })
                             console.log(`Finished syncing tracks for playlist ${playlists.indexOf(p) + 1}/${playlists.length}`)
                             await new Promise(r => setTimeout(r, 200)) //delay to prevent rate limits
                         }

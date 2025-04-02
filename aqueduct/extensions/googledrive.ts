@@ -20,7 +20,7 @@ export class GoogleDriveExtension {
 
     public exchangeCodeForToken(code: string): Promise<GoogleCredentials | null | undefined> {
         return new Promise((resolve, reject) => {
-            this.oauthClient.getToken({ code: code, redirect_uri: "https://localhost:3000/auth/google" }, (err, token) => {
+            this.oauthClient.getToken({ code: code, redirect_uri: "http://localhost:5173/auth/google" }, (err, token) => {
                 if (err) {
                     console.error("Error exchanging code for token: ", JSON.stringify(err, null, 2))
                     reject(err)

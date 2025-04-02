@@ -9,19 +9,12 @@ import { Button, Link } from "../common/Components";
 import { Container } from "../common/Container";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
-import { JazzAndAuth } from "../common/JazzAndAuth";
 import { LogoForSource } from "../common/Logos";
 import { useAccount } from "jazz-react";
+import { useNavigate } from "react-router";
 
 export function IntegrationsPage() {
-    return (
-        <JazzAndAuth>
-            <InternalPage/>
-        </JazzAndAuth>
-    )
-}
-
-function InternalPage() {
+    const navigate = useNavigate()
     const { me } = useAccount({ resolve: { root: { integrations: {
         spotifyIntegration: { playlists: true }
     } }}})
@@ -78,7 +71,7 @@ function InternalPage() {
                         <Button 
                             kind="secondary" 
                             size="lg"
-                            onPress={() => { /*router.push(generateGoogleAuthURL())*/ }}>
+                            onPress={() => { navigate(generateGoogleAuthURL()) }}>
                             Authenticate with Google
                         </Button>
                     }

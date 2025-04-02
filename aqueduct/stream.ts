@@ -167,13 +167,16 @@ export class Stream<T> {
     every(
         interval: number,
         lastSyncedAt?: number,
-        onSync?: (syncedAt: number) => void
+        onSync?: (syncedAt: number) => void,
+        skipInitial?: boolean,
     ): Stream<T> {
-        const periodicStream = Stream
-            .periodic(interval)
+        const periodicStream = Stream.periodic(interval)
+        const initialStream = Stream.of(-1)
+        const periodWithOptionalInitial = skipInitial ? periodicStream : Stream.merge(initialStream, periodicStream)
+        const dated = periodWithOptionalInitial
             .map(() => Date.now())
             .onEach(syncedAt => onSync && onSync(syncedAt))
-        const combined = Stream.combine(this, periodicStream)
+        const combined = Stream.combine(this, dated)
             .map(([value]) => value)
         return combined
     }

@@ -1,0 +1,1 @@
+export const localAddress = "http://localhost:5173"

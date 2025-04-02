@@ -1,3 +1,5 @@
+import { localAddress } from "../localaddress";
+
 function generateOAuthState() {
     return Math.random().toString(36).substring(2, 15) + 
            Math.random().toString(36).substring(2, 15);
@@ -26,7 +28,7 @@ export function generateGoogleAuthURL(): string {
     const state = generateOAuthState()
     const googleAuthURL = googleAuthUrl(
         "627322331663-plf372lgh0e4ocsimmg1t8pj4mc7b0ub.apps.googleusercontent.com", 
-        "https://localhost:3000/auth/google",
+        `${localAddress}/auth/google`,
         state
     )
     localStorage.setItem(googleOauthStateKey, state)
