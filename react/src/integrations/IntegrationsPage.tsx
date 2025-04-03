@@ -15,7 +15,8 @@ import { useNavigate } from "react-router";
 
 export function IntegrationsPage() {
     const { me } = useAccount({ resolve: { root: { integrations: {
-        spotifyIntegration: { playlists: true }
+        spotifyIntegration: { playlists: true },
+        googleIntegration: { authentication: {} },
     } }}})
     if(!me) return <p>Loading...</p>
     const integrations = me.root.integrations
@@ -63,9 +64,12 @@ export function IntegrationsPage() {
                 <BridgeItem
                     id="google-drive"
                     name="Google Drive"
-                    authStatus={AuthStatus.Unauthenticated}
-                    lastSynced={undefined}
-                    lastSyncedTried={undefined}
+                    authStatus={
+                        integrations.googleIntegration.authentication.credentials ? AuthStatus.Authenticated
+                        : integrations.googleIntegration.authentication.code ? AuthStatus.Authenticating
+                        : AuthStatus.Unauthenticated}
+                    lastSynced={integrations.googleIntegration.lastSyncedAt?.getTime()}
+                    lastSyncedTried={integrations.googleIntegration.lastTriedSyncedAt?.getTime()}
                     unauthenticatedChildren={
                         <Button 
                             kind="secondary" 
@@ -202,7 +206,7 @@ function BridgeItem({ id, name, authStatus, lastSynced, lastSyncedTried, authent
             ? `Synced at ${dateTimeFormatter.format(lastSynced)}`
             : `Not synced yet`
     return (
-        <div className="flex flex-col gap-4 -mx-4">
+        <div className="flex flex-col -mx-4">
             <div className="flex p-4 gap-4 items-center hover:bg-neutral-100 rounded-lg cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
                 <LogoForSource source={id} className="w-8 h-8 rounded-lg border border-neutral-200"/>
                 <div className="flex flex-col flex-grow">
@@ -211,9 +215,9 @@ function BridgeItem({ id, name, authStatus, lastSynced, lastSyncedTried, authent
                 </div>
                 <CaretRight className={`transform transition-transform ${isOpen ? "rotate-90" : "rotate-0"}`}/>
             </div>
-            {isOpen && authStatus == AuthStatus.Authenticated && <div className="flex flex-col gap-1 pl-16">{authenticatedChildren}</div>}
-            {isOpen && authStatus == AuthStatus.Authenticating && <div className="flex flex-col gap-1 pl-16">{authenticatedChildren ?? <p>Authenticating...</p>}</div>}
-            {isOpen && authStatus == AuthStatus.Unauthenticated && <div className="flex flex-col gap-1 pl-16">{unauthenticatedChildren}</div>}
+            {isOpen && authStatus == AuthStatus.Authenticated && <div className="flex flex-col gap-1 pl-16 py-4">{authenticatedChildren}</div>}
+            {isOpen && authStatus == AuthStatus.Authenticating && <div className="flex flex-col gap-1 pl-16 py-4">{authenticatedChildren ?? <p>Authenticating...</p>}</div>}
+            {isOpen && authStatus == AuthStatus.Unauthenticated && <div className="flex flex-col gap-1 pl-16 py-4">{unauthenticatedChildren}</div>}
         </div>
     )
 }

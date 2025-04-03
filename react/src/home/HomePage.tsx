@@ -15,6 +15,8 @@ import { OnboardingPage } from "../onboarding/OnboardingPage";
 import { DayItem } from "./timeline/DayItem";
 import { TimeGapView } from "./timeline/TimeGapView";
 import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
+import { useState } from "react";
+import { TicksWithIndicator } from "./Ticks";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -22,8 +24,8 @@ export function HomePage() {
     if(!me.root.syncState.syncing) return <OnboardingPage/>
 
     return (
-        <Container>
-            <Header>
+        <div className="flex flex-col min-h-screen max-h-screen min-w-screen max-w-screen items-center">
+            <Header className="max-w-4xl w-full">
                 <FountainLogo className="grow"/>
                 <JazzInspector position="bottom right"/>
                 <Link kind="secondary" to="/integrations">
@@ -31,11 +33,12 @@ export function HomePage() {
                 </Link>
             </Header>
             <Timeline/>
-        </Container>
+        </div>
     )
 }
 
 function Timeline() {
+    const [scrollPosition, setScrollPosition] = useState({ startIndex: 0, endIndex: 0 })
     const { me } = useAccount({ resolve: { root: {
         integrations: {
             spotifyIntegration: { playlists: true },
@@ -62,21 +65,42 @@ function Timeline() {
         ...googleDriveTimelineItems,
         ...testTimelineItems,
     ]
-    const withDays = sortAndInsertDays(allTimelineItems)
+    const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+    const withDays = insertDays(sortedTimelineItems)
+
 
     return (
-        <Virtuoso
-            className="flex flex-col h-full flex-grow"
-            totalCount={withDays.length}
-            overscan={100}
-            initialTopMostItemIndex={{ align: "end", index: withDays.length - 1 }}
-            itemContent={(index: number) => {
-                const item = withDays[index]
-                if(item instanceof TimeGap) return <TimeGapView gap={item} key={`${item.startDate?.toISOString()}-${item.endDate?.toISOString()}`}/>
-                else if (isTimelineItem(item)) return <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
-                else return <DayItem date={item} key={item.toISOString()}/>
-            }}
-        />
+        <div className="flex flex-col flex-grow w-full">
+            <Virtuoso
+                className="flex flex-col h-full flex-grow"
+                totalCount={withDays.length}
+                initialTopMostItemIndex={{ align: "end", index: withDays.length - 1 }}
+                rangeChanged={({ startIndex, endIndex }) => {
+                    setScrollPosition({ startIndex, endIndex })
+                }}
+                itemContent={(index: number) => {
+                    const item = withDays[index]
+                    const itemView = (item instanceof TimeGap)
+                        ? <TimeGapView gap={item} key={`${item.startDate?.toISOString()}-${item.endDate?.toISOString()}`}/>
+                        : (isTimelineItem(item)) 
+                        ? <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
+                        : <DayItem date={item} key={item.toISOString()}/>
+                    return (
+                        <div className="max-w-4xl w-full mx-auto">
+                            {itemView}
+                        </div>
+                    )
+                }}
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent h-8">
+                <TicksWithIndicator
+                    startDate={sortedTimelineItems[0]?.timestamp ?? new Date()} 
+                    endDate={sortedTimelineItems[sortedTimelineItems.length - 1]?.timestamp ?? new Date()}
+                    currentRange={{ startDate: viewItemDate(withDays[scrollPosition.startIndex]), endDate: viewItemDate(withDays[scrollPosition.endIndex]) }}
+                    className="pt-3 w-full h-8"
+                />
+            </div>
+        </div>
     )
 }
 
@@ -85,10 +109,15 @@ export type ViewItem = TimelineItem | Date | TimeGap
 function isTimelineItem(item: ViewItem): item is TimelineItem {
     return "id" in item
 }
-function sortAndInsertDays(timelineItems: TimelineItem[]): ViewItem[] {
+function viewItemDate(item: ViewItem): Date {
+    if (item instanceof Date) return item
+    if (item instanceof TimeGap) return item.startDate ?? item.endDate ?? new Date()
+    if (isTimelineItem(item)) return item.timestamp
+    throw new Error("Item is not a date or timeline item")
+}
+function insertDays(sortedTimelineItems: TimelineItem[]): ViewItem[] {
     const outItems: ViewItem[] = []
-    const sortedAscending = timelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-    sortedAscending.forEach(ti => {
+    sortedTimelineItems.forEach(ti => {
         if(outItems.length == 0) {
             // if empty, push first date and item
             outItems.push(new TimeGap(null, new Date(new Date(ti.timestamp).setHours(0, 0, 0, 0))))
@@ -112,8 +141,8 @@ function sortAndInsertDays(timelineItems: TimelineItem[]): ViewItem[] {
             }
         }
     })
-    if(timelineItems.length > 0) {
-        outItems.push(new TimeGap(new Date(new Date(timelineItems[timelineItems.length - 1].timestamp).setHours(0, 0, 0, 0) + 86400000), null))
+    if(sortedTimelineItems.length > 0) {
+        outItems.push(new TimeGap(new Date(new Date(sortedTimelineItems[sortedTimelineItems.length - 1].timestamp).setHours(0, 0, 0, 0) + 86400000), null))
     } else {
         outItems.push(new TimeGap(null, null))
     }
