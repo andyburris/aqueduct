@@ -1,34 +1,17 @@
 import { AccessToken } from '@spotify/web-api-ts-sdk';
-import { FullSpotifyPlaylist, SpotifyExtension, Stream, seconds } from 'aqueduct';
+import { SpotifyExtension, Stream, seconds } from 'aqueduct';
 import { SpotifyIntegration } from '../../jazz';
-import { MOCK_PLAYLISTS } from "../../src/home/mocks"
 
-export function syncSpotify(data: SpotifyIntegration) {
-    const spotifyCache = {
-      lastSyncedAt: 0,
-      playlists: [] as FullSpotifyPlaylist[],
-    }
-
+export async function syncSpotify(data: SpotifyIntegration) {
     const spotify = new SpotifyExtension({ 
       clientID: process.env.SPOTIFY_CLIENT_ID ?? "",
     });
 
-    // const [unsavedToken, tokenHandle] = Stream.fromHandle<AccessToken>()
-    // const unsavedToken = Stream.of(token)
-
-    // const saveUnsavedToken = unsavedToken.listen(token => spotifyData.authentication = token)
-
-    // const test = Stream.periodic(seconds(15))
-    //   .listen(async () => {
-    //     console.log("deep loading spotify playlists")
-    //     const loaded = await data.ensureLoaded({ resolve: { playlists: true }})
-    //     console.log("applying mocks")
-    //     loaded.playlists.applyDiff(MOCK_PLAYLISTS)
-    //     console.log("applied diffs")
-    //   })
+    const loadedData = await data.ensureLoaded({ resolve: { playlists: true }})
 
     const token = Stream
-      .fromListener<AccessToken>(emit => data.subscribe({ resolve: { } }, (i) => { if(i.authentication) emit(i.authentication) }))
+      .fromListener<AccessToken>(emit => loadedData.subscribe({ resolve: { } }, (i) => { if(i.authentication) emit(i.authentication) }))
+      .dropRepeats()
       .onEach(token => console.log("Got token: ", token))
       .filter(c => isAccessToken(c))
 
@@ -39,13 +22,13 @@ export function syncSpotify(data: SpotifyIntegration) {
         syncedAt => data.lastTriedSyncedAt = new Date(syncedAt)
     )
     .map(async token => {
-      const loaded = await data.ensureLoaded({ resolve: { playlists: true }})
-      const previousPlaylists = loaded.playlists
+      const previousPlaylists = loadedData.playlists
+      console.log(`getting playlists with ${previousPlaylists.length} previous playlists`)
       return spotify.playlists.getAll(token, previousPlaylists.map(p => p))
     }, 1)
     .listen(async playlists => {
       // console.log("Got playlists: ", JSON.stringify(playlists, null, 2))
-      console.log("Got playlist ids: ", playlists.data.map(p => p.id))
+      // console.log("Got playlist ids: ", playlists.data.map(p => p.id))
       const loaded = await data.ensureLoaded({ resolve: { playlists: true }})
       loaded.playlists.applyDiff(playlists.data)
       // save to database

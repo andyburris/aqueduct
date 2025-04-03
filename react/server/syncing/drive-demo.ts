@@ -1,7 +1,5 @@
 import { GoogleCredentials, GoogleDriveExtension, GoogleDriveFile, GoogleDriveFileOptions, Stream, seconds } from "aqueduct";
-import { flatten, unflatten } from "flat";
-import { Cell, Row, Store, Table } from "tinybase";
-import { loadCellAndListen, loadRowAndListen } from "./demo-utils";
+import { GoogleIntegration } from "../../jazz/schema/integrations/google-integration";
 
 const syncInfo: GoogleDriveFileOptions = {
     pageSize: 50,
@@ -9,63 +7,61 @@ const syncInfo: GoogleDriveFileOptions = {
     q: "trashed=false",
 }
 
-export function syncDrive(secureStore: Store, sharedStore: Store, serverStore: Store) {
+export async function syncDrive(data: GoogleIntegration) {
+    console.log("Syncing Google Drive...")
+
+    if(!process.env.GOOGLE_DRIVE_CLIENT_ID) throw new Error("GOOGLE_DRIVE_CLIENT_ID not set")
+    if(!process.env.GOOGLE_DRIVE_CLIENT_SECRET) throw new Error("GOOGLE_DRIVE_CLIENT_SECRET not set")
     const drive = new GoogleDriveExtension({
-        clientID: process.env.GOOGLE_DRIVE_CLIENT_ID ?? "",
-        clientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET ?? "",
+        clientID: process.env.GOOGLE_DRIVE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET!,
     })
 
+    const loadedData = await data.ensureLoaded({ resolve: { authentication: {}, files: true }})
+
     const code = Stream
-        .fromListener<Cell | undefined>(emit => loadCellAndListen(secureStore, "auth", "google-drive", "code", emit))
+        .fromListener<string>(emit => loadedData.authentication.subscribe({}, (auth) => { 
+            if(auth.code) emit(auth.code)
+        }))
         .map(c => c?.toString())
+        .onEach(c => console.log("Got code: ", c))
         .filter(c => c !== undefined)
-    const exchangeCodeForToken = code
-        .onEach(() => sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticating"))
+    code
         .map(code => drive.exchangeCodeForToken(code))
-        .onEach(token => {
-            secureStore.setPartialRow("auth", "google-drive", token as any)
-            secureStore.delCell("auth", "google-drive", "code")
-            sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticated")
-        })
         .filter(t => isGoogleCredentials(t))
+        .listen(async token => {
+            loadedData.authentication.credentials = token ?? undefined
+            loadedData.authentication.code = undefined
+        })
+
     const storedToken = Stream
-        .fromListener<Row | undefined>(emit => loadRowAndListen(secureStore, "auth", "google-drive", emit))
-        .map(t => t as unknown)
+        .fromListener<GoogleCredentials>(emit => loadedData.authentication.subscribe({}, (auth) => { 
+            if(auth.credentials) emit(auth.credentials)
+        }))
         .filter(t => isGoogleCredentials(t))
 
-    const token = Stream.combine(exchangeCodeForToken, storedToken)
-        .map(([a, b]) => a || b)
+    const token = storedToken
+        // .onEach(t => console.log("Got google token: ", t))
         .filter(t => !!t)
 
     const files = token
         .every(
             seconds(15), 
-            sharedStore.getCell("extensions", "google-drive", "lastTriedSyncedAt") as number | undefined, 
-            syncedAt => sharedStore.setCell("extensions", "google-drive", "lastTriedSyncedAt", syncedAt)
+            data.lastTriedSyncedAt?.getTime(), 
+            syncedAt => data.lastTriedSyncedAt = new Date(syncedAt)
         )
-        .map(token => {
-            const previousFilesTable = serverStore.getTable("google-drive")
-            const previousFiles = Object.values(previousFilesTable).map(p => unflatten(p) as GoogleDriveFile)
+        .map(async token => {
+            const previousFiles = (await data.ensureLoaded({ resolve: { files: true }})).files
+            console.log(`getting files with ${previousFiles.length} previous files`)
             return drive.getFiles(token, syncInfo, previousFiles)
         })
  
     files
         // .onEach(files => sharedStore.setCell("extensions", "google-drive", "files", files))
-        .listen(files => {
-            const flattened = Object.fromEntries(files.data.map(f => [f.id, flatten(f)])) as Table
-            // console.log("flattened: ", flattened)
-            serverStore.setTable("google-drive", flattened)
-            console.log(`Got ${files.changes.additions.length} additions, ${files.changes.updates.length} updates, and ${files.changes.deletions.length} deletions`)
-
-            const additionsAsNotes: [string, any][] = files.changes.additions.map(f => asNote(f.value))
-            const updatesAsNotes: [string, any][] = files.changes.updates.map(f => asNote(f.value))
-                  sharedStore.transaction(() => {
-                additionsAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
-                updatesAsNotes.forEach(([k, v]) => sharedStore.setRow("notes", k, v))
-                files.changes.deletions.forEach(f => sharedStore.delRow("notes", f.value.id))
-            })
-
-            sharedStore.setCell("extensions", "google-drive", "lastSyncedAt", Date.now())
+        .listen(async files => {
+            const loaded = await data.ensureLoaded({ resolve: { files: true }})
+            loaded.files.applyDiff(files.data)
+            data.lastSyncedAt = new Date()
         })
 }
 

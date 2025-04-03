@@ -25,7 +25,7 @@ declare module "jazz-react" {
 }
 
 // export const workerID = process.env.REACT_APP_JAZZ_WORKER_ACCOUNT!
-export const workerID = "co_zhoETMqryED6uwJErBiY5tXPSpe"
+export const workerID = "co_zJtWoMJDAkqW65iSB5C1rJVV1jb"
 export async function getWorkerAccount(): Promise<WorkerAccount> {
     return (await Account.load(workerID! as ID<Account>, {}))! as WorkerAccount
 }

@@ -14,7 +14,6 @@ import { useAccount } from "jazz-react";
 import { useNavigate } from "react-router";
 
 export function IntegrationsPage() {
-    const navigate = useNavigate()
     const { me } = useAccount({ resolve: { root: { integrations: {
         spotifyIntegration: { playlists: true }
     } }}})
@@ -71,7 +70,7 @@ export function IntegrationsPage() {
                         <Button 
                             kind="secondary" 
                             size="lg"
-                            onPress={() => { navigate(generateGoogleAuthURL()) }}>
+                            onPress={() => window.open(generateGoogleAuthURL()) }>
                             Authenticate with Google
                         </Button>
                     }
@@ -92,8 +91,8 @@ export function IntegrationsPage() {
                     id="spotify"
                     name="Spotify"
                     authStatus={integrations.spotifyIntegration.authentication ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
-                    lastSyncedTried={integrations.spotifyIntegration.lastSyncedAt as number | undefined}
-                    lastSynced={integrations.spotifyIntegration.lastTriedSyncedAt as number | undefined}
+                    lastSyncedTried={integrations.spotifyIntegration.lastSyncedAt?.getTime()}
+                    lastSynced={integrations.spotifyIntegration.lastTriedSyncedAt?.getTime()}
                     unauthenticatedChildren={
                         <Button 
                             kind="secondary" 
@@ -205,7 +204,7 @@ function BridgeItem({ id, name, authStatus, lastSynced, lastSyncedTried, authent
     return (
         <div className="flex flex-col gap-4 -mx-4">
             <div className="flex p-4 gap-4 items-center hover:bg-neutral-100 rounded-lg cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-                <LogoForSource source={id} className="w-8 h-8 rounded-lg"/>
+                <LogoForSource source={id} className="w-8 h-8 rounded-lg border border-neutral-200"/>
                 <div className="flex flex-col flex-grow">
                     <h2 className="font-semibold">{name}</h2>
                     <p className="text-stone-400">{authStatus} • {syncText}</p>

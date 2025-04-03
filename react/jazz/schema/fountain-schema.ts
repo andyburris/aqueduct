@@ -3,10 +3,10 @@
  * https://jazz.tools/docs/react/schemas/covalues
  */
 
-import { Account, CoList, CoMap, Group, Profile, co } from "jazz-tools";
-import { PlaylistList, SpotifyIntegration } from "./integrations/spotify";
-import { MOCK_PLAYLISTS } from "../../src/home/mocks";
-import { MOCK_TEST_NOTES, MOCK_TEST_NOTES_JSON, MOCK_TEST_NOTES_STRING, NoteList, TestIntegration } from "./integrations/test-integration";
+import { Account, CoMap, Group, Profile, co } from "jazz-tools";
+import { PlaylistList, SpotifyIntegration } from "./integrations/spotify-integration";
+import { MOCK_TEST_NOTES, NoteList, TestIntegration } from "./integrations/test-integration";
+import { FileList, GoogleAuthentication, GoogleIntegration } from "./integrations/google-integration";
 
 /** The account profile is an app-specific per-user public `CoMap`
  *  where you can store top-level objects for that user */
@@ -33,6 +33,7 @@ export class FountainSync extends CoMap {
 
 export class FountainIntegrations extends CoMap {
   spotifyIntegration = co.ref(SpotifyIntegration)
+  googleIntegration = co.ref(GoogleIntegration)
   testIntegration = co.ref(TestIntegration)
 }
 
@@ -50,10 +51,14 @@ export class FountainUserAccount extends Account {
       this.root = FountainRoot.create({
         integrations: FountainIntegrations.create({
           spotifyIntegration: SpotifyIntegration.create({ 
-            playlists: PlaylistList.create([], group)
+            playlists: PlaylistList.create([], group),
+          }, group),
+          googleIntegration: GoogleIntegration.create({ 
+            authentication: GoogleAuthentication.create({}, group),
+            files: FileList.create([], group),
           }, group),
           testIntegration: TestIntegration.create({
-            notes: NoteList.create(MOCK_TEST_NOTES(), group)
+            notes: NoteList.create(MOCK_TEST_NOTES(), group),
           }, group)
         }, group),
         syncState: FountainSync.create({ syncing: false }, account)

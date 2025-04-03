@@ -1,6 +1,7 @@
 import xs, { Stream as XStream, Producer as XProducer, Listener as XListener, MemoryStream, Listener } from 'xstream'
 import flattenConcurrentlyAtMost from 'xstream/extra/flattenConcurrentlyAtMost'
 import flattenConcurrently from 'xstream/extra/flattenConcurrently'
+import { default as baseDropRepeats } from 'xstream/extra/dropRepeats'
 
 export class Stream<T> {
     private _stream: XStream<T>;
@@ -181,6 +182,12 @@ export class Stream<T> {
         return combined
     }
 
+    dropRepeats(
+        isEqual: (a: T, b: T) => boolean = (a, b) => a === b
+    ): Stream<T> {
+        return new Stream(this._stream.compose(baseDropRepeats(isEqual)));
+    }
+
     listen(
         onNext?: (value: T) => void,
         onError?: (error: any) => void,
@@ -207,7 +214,7 @@ export class Stream<T> {
     // Utility method to access the underlying xs.Stream
     asBaseStream(): XStream<T> {
         return this._stream;
-    }
+    }        
 }
 
 export interface CombineSignature {

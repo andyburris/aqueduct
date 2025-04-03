@@ -13,7 +13,6 @@ import { OnboardingPage } from "../onboarding/OnboardingPage";
 import { DayItem } from "./DayItem";
 import { TimeGapView } from "./TimeGapView";
 import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
-import { TestNote } from "../../jazz/schema/integrations/test-integration";
 import { JazzInspector } from "jazz-inspector";
 
 export function HomePage() {
@@ -25,6 +24,7 @@ export function HomePage() {
         <Container>
             <Header>
                 <FountainLogo className="grow"/>
+                <JazzInspector position="bottom right"/>
                 <Link kind="secondary" to="/integrations">
                     <GearSix/>
                 </Link>
@@ -38,17 +38,27 @@ function Timeline() {
     const { me } = useAccount({ resolve: { root: {
         integrations: {
             spotifyIntegration: { playlists: true },
+            googleIntegration: { files: true },
             testIntegration: { notes: { $each: true} }
         }
     } }})
     if (!me) return <p>Loading...</p>
     const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations.spotifyIntegration.playlists
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
+    const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files
+        ?.map(file => new TimelineItem(
+            file.id ?? "",
+            new Date(file.modifiedTime ?? 0),
+            "google-drive",
+            "File",
+            file.name ?? "",
+        ))
     const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.notes
-        .flatMap(n => new TestTimelineItem(n))
+        .map(n => new TestTimelineItem(n))
     
     const allTimelineItems = [
         ...spotifyTimelineItems,
+        ...googleDriveTimelineItems,
         ...testTimelineItems,
     ]
     const withDays = sortAndInsertDays(allTimelineItems)
@@ -61,7 +71,6 @@ function Timeline() {
                 else if (isTimelineItem(item)) return <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
                 else return <DayItem date={item} key={item.toISOString()}/>
             }) }
-            <JazzInspector/>
         </div>
     )
 }

@@ -1,6 +1,7 @@
 import { startWorker } from "jazz-nodejs";
 import { InboxMessage, RegisterClientMessage, WorkerAccount } from "../jazz";
 import { syncSpotify } from "./syncing/spotify-demo";
+import { syncDrive } from "./syncing/drive-demo";
 
 const localAddress = "ws://127.0.0.1:4200"
 
@@ -26,11 +27,13 @@ await workerAccount.root.integrations.subscribe(
     
     // start syncing any new accounts
     newAccounts.forEach(async newA => {
-      console.log("Syncing Spotify for account", newA.id)
+      console.log("Syncing integrations for account", newA.id)
       const loadedIntegrations = await newA.ensureLoaded({ resolve: { 
-        spotifyIntegration: {}
+        spotifyIntegration: {},
+        googleIntegration: {},
        }})
-      const unsubscribe = syncSpotify(loadedIntegrations.spotifyIntegration)
+      await syncSpotify(loadedIntegrations.spotifyIntegration)
+      await syncDrive(loadedIntegrations.googleIntegration)
 
       runningAccounts.set(newA.id, () => { 
         console.log("Unsubscribing for account", newA.id)

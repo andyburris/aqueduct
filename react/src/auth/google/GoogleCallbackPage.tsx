@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router';
 
 export function GoogleCallbackPage() {
   const navigate = useNavigate()
-  const { me } = useAccount({ resolve: { root: { integrations: { spotifyIntegration: {} }}}})
+  const { me } = useAccount({ resolve: { root: { integrations: { googleIntegration: { authentication: {} }}}}})
 
   useEffect(() => {
     if(!me) return
@@ -32,18 +32,20 @@ export function GoogleCallbackPage() {
         throw new Error('State verification failed (expected: ' + storedState + ', got: ' + state + ')');
       }
       
-      // me.root.integrations.googleIntegration.authentication = code
+
+      me.root.integrations.googleIntegration.authentication.code = code
       // sharedStore.setCell("extensions", "google-drive", "authStatus", "authenticating");
 
       // Clear the stored state
       localStorage.removeItem('oauth_state');
+      navigate('/integrations')
 
 
     } catch (error) {
       console.error('OAuth callback error:', error);
-      // router.push('/auth-error');
+      navigate('/auth-error');
     }
-  }, [me])
+  }, [!!me])
 
   // Show a loading state while processing
   return (

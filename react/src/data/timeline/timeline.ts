@@ -1,7 +1,9 @@
-export interface TimelineItem {
-    id: string
-    timestamp: Date
-    source: string
-    type: string
-    description: string
+export class TimelineItem {
+    constructor(
+        public id: string,
+        public timestamp: Date,
+        public source: string,
+        public type: string,
+        public description: string,
+    ) {}
 }

@@ -2,28 +2,22 @@ import { Playlist, PlaylistedTrack, SimplifiedPlaylist, Track } from "@spotify/w
 import { TimelineItem } from "../timeline";
 import { FullSpotifyPlaylist } from "aqueduct";
 
-export class SpotifyPlaylistTimelineItem implements TimelineItem {
+export class SpotifyPlaylistTimelineItem extends TimelineItem {
     static SOURCE = "Spotify"
     static TYPE = "Playlist"
-
-    id: string
-    timestamp: Date
-    source: string
-    type: string
-    description: string
-
     
     constructor(
         public playlist: SimplifiedPlaylist,
         public track: PlaylistedTrack<Track>,
         public firstAdd: boolean,
     ) {
-        this.id = this.playlist.id + "|" + this.track.track.id + "|" + this.track.added_at
-        this.timestamp = new Date(this.track.added_at)
-        this.source = SpotifyPlaylistTimelineItem.SOURCE
-        this.type = SpotifyPlaylistTimelineItem.TYPE
-        this.description = `${this.track.track.name} added to ${this.playlist.name}`
-    
+        super(
+            playlist.id + "|" + track.track.id + "|" + track.added_at,
+            new Date(track.added_at),
+            SpotifyPlaylistTimelineItem.SOURCE,
+            SpotifyPlaylistTimelineItem.TYPE,
+            `${track.track.name} added to ${playlist.name}`
+        )    
     }
 
     static playlistToTimelineItems(playlist: FullSpotifyPlaylist): SpotifyPlaylistTimelineItem[] {

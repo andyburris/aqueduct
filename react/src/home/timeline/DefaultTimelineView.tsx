@@ -19,11 +19,11 @@ export function DefaultTimelineView({ item }: { item: TimelineItem }) {
 export function BasicTimelineView({ item, children }: { item: TimelineItem, children: React.ReactElement }) {
     return (
         <div className="flex gap-3">
-            <LogoForSource source={item.source.toLowerCase()} className="w-6 h-6 rounded-2xl text-sm" />
+            <LogoForSource source={item.source.toLowerCase()} className="w-6 h-6 rounded-2xl text-sm border border-neutral-200 shrink-0" />
             <div className="grow">
                 {children}
             </div>
-            <p className="text-neutral-500">{timeFormatter.format(item.timestamp)}</p>
+            <p className="text-neutral-500 shrink-0 text-right">{timeFormatter.format(item.timestamp)}</p>
         </div>
     )
 }
