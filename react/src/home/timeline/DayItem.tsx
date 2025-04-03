@@ -5,8 +5,8 @@ const dateFormatterWithYear = new Intl.DateTimeFormat('en-US', { month: 'short',
 
 export function DayItem({ date, className }: { date: Date, className?: string }) {
     return (
-        <div className={`flex flex-col gap-2 ${className}`}>
-            <div className="flex items-cente gap-2">
+        <div className={`flex flex-col gap-2 px-4 pt-6 pb-2 ${className}`}>
+            <div className="flex items-center gap-2">
                 <p className="text-2xl font-medium bg-neutral-100 px-2 rounded-md text-neutral-600">{dayOfWeekFormatter.format(date)}</p>
                 <p className="text-2xl font-medium">{
                 date.getFullYear() == new Date(Date.now()).getFullYear()

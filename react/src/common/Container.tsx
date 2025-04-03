@@ -1,9 +1,12 @@
 import { DetailedHTMLProps } from "react";
 
-export function Container({ children, className, ...props }: DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>) {
+export interface ContainerProps extends DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+    wrapHeight?: boolean;
+}
+export function Container({ children, className, wrapHeight, ...props }: ContainerProps) {
     return (
         <main 
-            className={`flex min-h-screen max-h-screen flex-col max-w-4xl mx-auto ${className}`}
+            className={`flex ${wrapHeight ? "" : "min-h-screen"} max-h-screen flex-col max-w-4xl mx-auto ${className}`}
             {...props}
         >
             {children}

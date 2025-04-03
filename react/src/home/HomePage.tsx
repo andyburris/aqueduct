@@ -1,7 +1,9 @@
 "use client"
 
 import { GearSix } from "@phosphor-icons/react";
+import { JazzInspector } from "jazz-inspector";
 import { useAccount } from "jazz-react";
+import { Virtuoso } from "react-virtuoso";
 import { Container } from "..//common/Container";
 import { Link } from "../common/Components";
 import { FountainLogo } from "../common/FountainLogo";
@@ -10,10 +12,9 @@ import { SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotify
 import { TestTimelineItem } from "../data/timeline/converters/testconverter";
 import { TimelineItem } from "../data/timeline/timeline";
 import { OnboardingPage } from "../onboarding/OnboardingPage";
-import { DayItem } from "./DayItem";
-import { TimeGapView } from "./TimeGapView";
+import { DayItem } from "./timeline/DayItem";
+import { TimeGapView } from "./timeline/TimeGapView";
 import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
-import { JazzInspector } from "jazz-inspector";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -64,14 +65,18 @@ function Timeline() {
     const withDays = sortAndInsertDays(allTimelineItems)
 
     return (
-        <div className="flex flex-col gap-6 px-5 py-2 overflow-y-auto">
-            {/* <p className="text-neutral-500">{allTimelineItems.length} items</p> */}
-            { withDays.map(item => {
+        <Virtuoso
+            className="flex flex-col h-full flex-grow"
+            totalCount={withDays.length}
+            overscan={100}
+            initialTopMostItemIndex={{ align: "end", index: withDays.length - 1 }}
+            itemContent={(index: number) => {
+                const item = withDays[index]
                 if(item instanceof TimeGap) return <TimeGapView gap={item} key={`${item.startDate?.toISOString()}-${item.endDate?.toISOString()}`}/>
                 else if (isTimelineItem(item)) return <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
                 else return <DayItem date={item} key={item.toISOString()}/>
-            }) }
-        </div>
+            }}
+        />
     )
 }
 
