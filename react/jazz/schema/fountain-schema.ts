@@ -5,7 +5,7 @@
 
 import { Account, CoMap, Group, Profile, co } from "jazz-tools";
 import { PlaylistList, SpotifyIntegration } from "./integrations/spotify-integration";
-import { MOCK_TEST_NOTES, NoteList, TestIntegration } from "./integrations/test-integration";
+import { EventList, MOCK_TEST_EVENTS, TestIntegration } from "./integrations/test-integration";
 import { FileList, GoogleAuthentication, GoogleIntegration } from "./integrations/google-integration";
 
 /** The account profile is an app-specific per-user public `CoMap`
@@ -58,7 +58,7 @@ export class FountainUserAccount extends Account {
             files: FileList.create([], group),
           }, group),
           testIntegration: TestIntegration.create({
-            notes: NoteList.create(MOCK_TEST_NOTES(), group),
+            events: EventList.create(MOCK_TEST_EVENTS(), group),
           }, group)
         }, group),
         syncState: FountainSync.create({ syncing: false }, account)

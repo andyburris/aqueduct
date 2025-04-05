@@ -13,24 +13,26 @@ export function OnboardingPage() {
     if(!me) return <p>Loading...</p>
     return (
         <Container>
-            <p>Currently syncing = {`${me.root.syncState.syncing}`}</p>
-            <Button
-                isDisabled={isSyncing}
-                onPress={async () => {
-                    setIsSyncing(true)
-                    console.log("pressed")
-                    const worker = await getWorkerAccount()
-                    const userIntegrations = me.root.integrations
-                    const userInegrationsGroup = userIntegrations?._owner?.castAs(Group)
-                    userInegrationsGroup?.addMember(worker, "writer")
-                    if(userIntegrations) {
-                        const registerMessage = RegisterClientMessage.create({ integrations: userIntegrations, type: "register" })
-                        sendToInbox(registerMessage)
-                        me.root.syncState.applyDiff({ syncing: true })
-                    } else throw new Error("User integrations not found")
-                }}>
-                <p>Start syncing</p>
-            </Button>
+            <div className="flex justify-center items-center w-full h-screen">
+                <Button
+                    kind="primary"
+                    isDisabled={isSyncing}
+                    onPress={async () => {
+                        setIsSyncing(true)
+                        console.log("pressed")
+                        const worker = await getWorkerAccount()
+                        const userIntegrations = me.root.integrations
+                        const userInegrationsGroup = userIntegrations?._owner?.castAs(Group)
+                        userInegrationsGroup?.addMember(worker, "writer")
+                        if(userIntegrations) {
+                            const registerMessage = RegisterClientMessage.create({ integrations: userIntegrations, type: "register" })
+                            sendToInbox(registerMessage)
+                            me.root.syncState.applyDiff({ syncing: true })
+                        } else throw new Error("User integrations not found")
+                    }}>
+                    <p>Start syncing</p>
+                </Button>
+            </div>
         </Container>
     )
 }

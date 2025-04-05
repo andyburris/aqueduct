@@ -65,20 +65,6 @@ export async function syncDrive(data: GoogleIntegration) {
         })
 }
 
-function asNote(file: GoogleDriveFile): [string, any] {
-  const note = {
-      id: file.id,
-      title: file.name,
-      content: undefined,
-      source: "google-drive",
-      timestamp: Date.parse(file.modifiedTime!),
-      editedTimestamp: Date.parse(file.modifiedTime!),
-      createdTimestamp: Date.parse(file.createdTime!),
-      syncedTimestamp: Date.now(),
-  }
-  return [file.id!, { ...note }]
-}
-
 function isGoogleCredentials(token: any): token is GoogleCredentials {
     return "access_token" in token && "refresh_token" in token && "token_type" in token && "expiry_date" in token && "scope" in token
 }

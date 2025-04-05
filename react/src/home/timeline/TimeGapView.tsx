@@ -11,7 +11,7 @@ export function TimeGapView({ gap }: { gap: TimeGap }) {
     const startString = gap.startDate ? dateFormatter.format(gap.startDate) : "The start of time"
     const endString = gap.endDate ? dateFormatter.format(gap.endDate) : "The end of time"
     return (
-        <div className="flex items-center gap-2 text-neutral-500 text-sm px-5 pt-4">
+        <div className="flex items-center gap-2 text-neutral-500 text-sm pr-5 pl-1 pt-4">
             <Clock/>
             <p>{startString} - {endString}</p>
         </div>

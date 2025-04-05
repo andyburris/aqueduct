@@ -42,21 +42,23 @@ export class GoogleDriveExtension {
                 if (err) {
                     console.error("Error getting files: ", JSON.stringify(err, null, 2))
                     reject(err)
+                    return
                 }
                 if (!response || !response.data || !response.data.files) {
                     console.error("Error getting files: ", JSON.stringify(response, null, 2))
                     reject(response)
+                    return
                 }
 
-                const additions = response!.data!.files!.filter(f => !previous?.find(p => p.id === f.id))
-                const updates = response!.data!.files!
+                const additions = response.data.files.filter(f => !previous?.find(p => p.id === f.id))
+                const updates = response.data.files
                     .filter(f => {
                         const match = previous?.find(p => p.id === f.id)
                         return match && (match.modifiedTime !== f.modifiedTime || match.createdTime !== f.createdTime)
                     })
-                const deletions = previous?.filter(p => !response!.data!.files!.find(f => f.id === p.id))
+                const deletions = previous?.filter(p => !response.data.files!.find(f => f.id === p.id))
                 const result: SyncResult<GoogleDriveFile[]> = {
-                    data: response!.data!.files!,
+                    data: response.data.files,
                     changes: new SyncResultChanges(
                         additions.map(f => ({ operation: "add", value: f } as Change)),
                         updates.map(f => ({ operation: "update", value: f } as Change)),

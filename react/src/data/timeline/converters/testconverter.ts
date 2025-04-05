@@ -1,25 +1,25 @@
-import { TimelineItem } from "../timeline";
-import { TestNote } from "../../../../jazz/schema/integrations/test-integration";
+import { TimelineDurationItem, TimelineItem } from "../timeline";
+import { TestEvent } from "../../../../jazz/schema/integrations/test-integration";
 
-export class TestTimelineItem implements TimelineItem {
+export class TestTimelineItem extends TimelineDurationItem {
     static SOURCE = "test"
-    static TYPE = "note"
-
-    id: string
-    timestamp: Date
-    source: string
-    type: string
-    description: string
+    static TYPE = "test-event"
 
     constructor(
-        testNote: TestNote,
+        testEvent: TestEvent,
     ) {
-        this.id = testNote.id
-        this.timestamp = testNote.timestamp
-        this.source = TestTimelineItem.SOURCE
-        this.type = TestTimelineItem.TYPE
-        this.description = testNote.text
-    
+        super(
+            testEvent.id,
+            {
+                start: testEvent.start,
+                end: testEvent.end,
+                color: "#E5E5E5",
+                style: "solid",
+            },
+            TestTimelineItem.SOURCE,
+            TestTimelineItem.TYPE,
+            testEvent.name,
+        )
     }
 }
 

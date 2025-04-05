@@ -10,13 +10,14 @@ import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
 import { SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotifyconverter";
 import { TestTimelineItem } from "../data/timeline/converters/testconverter";
-import { TimelineItem } from "../data/timeline/timeline";
+import { Duration, TimelineDurationItem, TimelineItem } from "../data/timeline/timeline";
 import { OnboardingPage } from "../onboarding/OnboardingPage";
 import { DayItem } from "./timeline/DayItem";
 import { TimeGapView } from "./timeline/TimeGapView";
 import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
 import { useState } from "react";
 import { TicksWithIndicator } from "./Ticks";
+import { DurationsView } from "./timeline/DurationsView";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -43,7 +44,7 @@ function Timeline() {
         integrations: {
             spotifyIntegration: { playlists: true },
             googleIntegration: { files: true },
-            testIntegration: { notes: { $each: true} }
+            testIntegration: { events: { $each: true} }
         }
     } }})
     if (!me) return <p>Loading...</p>
@@ -57,7 +58,7 @@ function Timeline() {
             "File",
             file.name ?? "",
         ))
-    const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.notes
+    const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
         .map(n => new TestTimelineItem(n))
     
     const allTimelineItems = [
@@ -67,27 +68,24 @@ function Timeline() {
     ]
     const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
     const withDays = insertDays(sortedTimelineItems)
+    const withDurations = addDurations(withDays)
 
 
     return (
         <div className="flex flex-col flex-grow w-full">
             <Virtuoso
                 className="flex flex-col h-full flex-grow"
-                totalCount={withDays.length}
-                initialTopMostItemIndex={{ align: "end", index: withDays.length - 1 }}
+                totalCount={withDurations.length + 1}
+                initialTopMostItemIndex={{ align: "end", index: withDurations.length }}
                 rangeChanged={({ startIndex, endIndex }) => {
                     setScrollPosition({ startIndex, endIndex })
                 }}
                 itemContent={(index: number) => {
-                    const item = withDays[index]
-                    const itemView = (item instanceof TimeGap)
-                        ? <TimeGapView gap={item} key={`${item.startDate?.toISOString()}-${item.endDate?.toISOString()}`}/>
-                        : (isTimelineItem(item)) 
-                        ? <TimelineItemSwitcher item={item} key={`${item.source}/${item.type}/${item.id}`}/>
-                        : <DayItem date={item} key={item.toISOString()}/>
+                    if(index >= withDurations.length) return <div className="h-8" />
+                    const item = withDurations[index]
                     return (
-                        <div className="max-w-4xl w-full mx-auto">
-                            {itemView}
+                        <div className={`max-w-4xl w-full mx-auto`}>
+                            <DurationsView item={item} />
                         </div>
                     )
                 }}
@@ -96,7 +94,9 @@ function Timeline() {
                 <TicksWithIndicator
                     startDate={sortedTimelineItems[0]?.timestamp ?? new Date()} 
                     endDate={sortedTimelineItems[sortedTimelineItems.length - 1]?.timestamp ?? new Date()}
-                    currentRange={{ startDate: viewItemDate(withDays[scrollPosition.startIndex]), endDate: viewItemDate(withDays[scrollPosition.endIndex]) }}
+                    currentRange={{ 
+                        startDate: viewItemDate(withDays[scrollPosition.startIndex < withDurations.length ? scrollPosition.startIndex : scrollPosition.startIndex - 1]), 
+                        endDate: viewItemDate(withDays[scrollPosition.endIndex < withDurations.length ? scrollPosition.endIndex : scrollPosition.endIndex - 1]) }}
                     className="pt-3 w-full h-8"
                 />
             </div>
@@ -106,7 +106,18 @@ function Timeline() {
 
 export class TimeGap { constructor (public startDate: Date | null, public endDate: Date | null) {}}
 export type ViewItem = TimelineItem | Date | TimeGap
-function isTimelineItem(item: ViewItem): item is TimelineItem {
+export interface DurationInfo {
+    duration: Duration
+    firstItemInDuration: boolean
+    finalItemInDuration: boolean
+}
+export class ViewItemWithDurations {
+    constructor(
+        public durationInfos: (DurationInfo | null)[],
+        public item: ViewItem,
+    ) {}
+}
+export function isTimelineItem(item: ViewItem): item is TimelineItem {
     return "id" in item
 }
 function viewItemDate(item: ViewItem): Date {
@@ -146,6 +157,53 @@ function insertDays(sortedTimelineItems: TimelineItem[]): ViewItem[] {
     } else {
         outItems.push(new TimeGap(null, null))
     }
+
+    return outItems
+}
+
+function addDurations(sortedViewItems: ViewItem[]): ViewItemWithDurations[] {
+    const outItems: ViewItemWithDurations[] = []
+    let currentDurations: (Duration | null)[] = []
+
+    sortedViewItems.forEach((item, index) => { 
+        const nextTimestamp = index < sortedViewItems.length - 1 ? viewItemDate(sortedViewItems[index + 1]) : null
+        let insertedIndex: number | null = null
+        if(item instanceof TimelineDurationItem) {
+            const firstNullDurationIndex = currentDurations.findIndex(d => d === null)
+            if (firstNullDurationIndex !== -1) {
+                currentDurations[firstNullDurationIndex] = item.duration
+                insertedIndex = firstNullDurationIndex
+            } else {
+                currentDurations.push(item.duration)
+                insertedIndex = currentDurations.length - 1
+            }
+        }
+
+        const currentDurationsInfos = currentDurations.map((d, index) => { 
+            if (!d) return null
+            const isLast = !nextTimestamp || d.end < nextTimestamp
+            return { 
+                duration: d, 
+                firstItemInDuration: insertedIndex === index,
+                finalItemInDuration: isLast
+            }
+         })
+
+        outItems.push(new ViewItemWithDurations(currentDurationsInfos, item))
+
+        currentDurationsInfos.forEach((durationInfo, index) => {
+            if(durationInfo?.finalItemInDuration) {
+                currentDurations[index] = null
+            }
+        })
+    })
+
+    const maxConcurrentDurationSlots = Math.max(...outItems.map(item => item.durationInfos.length))
+    outItems.forEach(item => {
+        while (item.durationInfos.length < maxConcurrentDurationSlots) {
+            item.durationInfos.push(null)
+        }
+    })
 
     return outItems
 }
