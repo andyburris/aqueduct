@@ -92,6 +92,32 @@ export function IntegrationsPage() {
                     }
                 />
                 <BridgeItem
+                    id="google-maps"
+                    name="Location History"
+                    authStatus={AuthStatus.Unauthenticated}
+                    lastSynced={undefined}
+                    lastSyncedTried={undefined}
+                    unauthenticatedChildren={
+                        <FileTrigger>
+                            <Button 
+                                kind="secondary" 
+                                size="lg"
+                                >
+                                Upload location file
+                            </Button>
+                        </FileTrigger>
+                    }
+                    authenticatedChildren={
+                        <Button 
+                            kind="secondary" 
+                            size="lg" 
+                            onPress={() => {}}
+                        >
+                            Log Out
+                        </Button>
+                    }
+                />
+                <BridgeItem
                     id="spotify"
                     name="Spotify"
                     authStatus={integrations.spotifyIntegration.authentication ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
