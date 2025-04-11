@@ -1,4 +1,5 @@
-import { unzip, unzipRaw, ZipEntry, ZipInfo } from 'unzipit';
+import { places_v1 } from "googleapis"
+import { unzip, ZipEntry } from 'unzipit';
 
 export interface LatLong { latitude: number, longitude: number }
 function stringToLatLong(s: string): LatLong { 
@@ -17,10 +18,14 @@ export interface GoogleLocationHistoryVisit {
             probability: number,
             semanticType: string,
             placeID: string,
+            placeInfo: {
+                name?: string,
+                address: string,
+            },
             placeLocation: LatLong,
         },
         probability: number,
-    }
+    },
 }
 export interface GoogleLocationHistoryActivity {
     startTimestamp: string,
@@ -33,11 +38,15 @@ export interface GoogleLocationHistoryActivity {
             probability: number,
             type: string,
         },
-    }
+    },
 }
 
 export class GoogleTakeoutExtension {
-    constructor() {}
+    private placesClient: places_v1.Places
+    
+    constructor() {
+        this.placesClient = new places_v1.Places({ auth: process.env.GOOGLE_MAPS_API_KEY! })
+    }
 
     public async unzipFiles(files: File[]) {
         const zips = await Promise.all(files.map(async f => await unzip(await f.arrayBuffer())))
@@ -49,10 +58,44 @@ export class GoogleTakeoutExtension {
 
     }
 
-    async parseCurrentLocationHistory(json: NewGoogleLocationHistoryItem[]): Promise<GoogleLocationHistoryItem[]> {
-        return json.map(rawItem => {
+    async parseCurrentLocationHistory(json: NewGoogleLocationHistoryItem[], previousLocationHistory: GoogleLocationHistoryItem[]): Promise<GoogleLocationHistoryItem[]> {
+        const placeInfoCache: Map<string, { name?: string, address: string }> = new Map()
+        previousLocationHistory.forEach(item => {
+            if ("visit" in item) {
+                placeInfoCache.set(item.visit.topCandidate.placeID, {
+                    name: item.visit.topCandidate.placeInfo.name,
+                    address: item.visit.topCandidate.placeInfo.address,
+                })
+            }
+        })
+        const promises: Promise<GoogleLocationHistoryItem | null>[] = json.map(async rawItem => {
+            // console.log(`Parsing item: ${JSON.stringify(rawItem)}`)
             if (isRawNewVisit(rawItem)) {
-                return {
+                console.log(`Getting place info for ${rawItem.visit.topCandidate.placeID}`)
+                const placeInfo = placeInfoCache.has(rawItem.visit.topCandidate.placeID)
+                    ? placeInfoCache.get(rawItem.visit.topCandidate.placeID)!
+                    : await this.placesClient.places
+                        .get({ 
+                            name: `places/${rawItem.visit.topCandidate.placeID}`,
+                            fields: "shortFormattedAddress,displayName",
+                        })
+                        .then(({ data: place }) => {
+                            console.log(`Got place info for ${rawItem.visit.topCandidate.placeID}: `, place)
+                            return {
+                                name: place.displayName?.text ?? place.shortFormattedAddress ?? undefined,
+                                address: place.shortFormattedAddress ?? "Unknown",
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error getting place info for ${rawItem.visit.topCandidate.placeID}: `, err)
+                            return {
+                                name: undefined,
+                                address: "Unknown - Error getting data from Google Maps",
+                            }
+                        })
+                    // : { name: undefined, address: "Unknown" }
+                console.log(`Got place info for ${rawItem.visit.topCandidate.placeID}: `, placeInfo)
+                const out: GoogleLocationHistoryVisit = {
                     startTimestamp: rawItem.startTime,
                     endTimestamp: rawItem.endTime,
                     visit: {
@@ -61,13 +104,15 @@ export class GoogleTakeoutExtension {
                             probability: parseFloat(rawItem.visit.topCandidate.probability),
                             semanticType: rawItem.visit.topCandidate.semanticType,
                             placeID: rawItem.visit.topCandidate.placeID,
+                            placeInfo: placeInfo,
                             placeLocation: stringToLatLong(rawItem.visit.topCandidate.placeLocation),
                         },
                         probability: parseFloat(rawItem.visit.probability),
                     },
                 }
+                return out
             } else if (isRawNewActivity(rawItem)) {
-                return {
+                const out : GoogleLocationHistoryActivity = {
                     startTimestamp: rawItem.startTime,
                     endTimestamp: rawItem.endTime,
                     activity: {
@@ -80,8 +125,12 @@ export class GoogleTakeoutExtension {
                         end: stringToLatLong(rawItem.activity.end),
                     },
                 }
+                return out
             } else { return null }
-        }).filter(i => i != null)
+        })
+        const results = await Promise.all(promises)
+        console.log(`Parsed ${results.length} items`)
+        return results.filter(i => i != null)
     }
 }
 

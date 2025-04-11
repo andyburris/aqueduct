@@ -22,7 +22,7 @@ export class LocationHistoryTimelineItem extends TimelineDurationItem {
             LocationHistoryTimelineItem.TYPE,
             isActivity 
                 ? `${activityTypeToString(item.activity.topCandidate.type)} for ${item.activity.distanceMeters}m` 
-                : `Arrived at ${item.visit.topCandidate.placeID}`,
+                : `Arrived at ${item.visit.topCandidate.placeInfo.name ?? item.visit.topCandidate.placeInfo.address}`,
         )
     }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { CaretRight, CodeSimple } from "@phosphor-icons/react";
+import { useAccount } from "jazz-react";
 import { useState } from "react";
 import { FileTrigger, Input, Label, TextField } from "react-aria-components";
 import { generateGoogleAuthURL } from "../auth/google/googleauth";
@@ -10,13 +11,11 @@ import { Container } from "../common/Container";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
 import { LogoForSource } from "../common/Logos";
-import { useAccount } from "jazz-react";
-import { useNavigate } from "react-router";
 
 export function IntegrationsPage() {
     const { me } = useAccount({ resolve: { root: { integrations: {
         spotifyIntegration: { playlists: true },
-        googleIntegration: { authentication: {} },
+        googleIntegration: { authentication: {}, locations: { items: true }, },
     } }}})
     if(!me) return <p>Loading...</p>
     const integrations = me.root.integrations
@@ -94,16 +93,24 @@ export function IntegrationsPage() {
                 <BridgeItem
                     id="google-maps"
                     name="Location History"
-                    authStatus={AuthStatus.Unauthenticated}
+                    authStatus={integrations.googleIntegration.locations.items.length > 0 ? AuthStatus.Authenticated : AuthStatus.Unauthenticated}
                     lastSynced={undefined}
                     lastSyncedTried={undefined}
                     unauthenticatedChildren={
-                        <FileTrigger>
+                        <FileTrigger 
+                            allowsMultiple={false}
+                            onSelect={async l => {
+                                const file = l?.[0]
+                                if(!file) return
+                                const json = JSON.parse(await file.text())
+                                integrations.googleIntegration.locations.fileInProcess = json
+                            }}
+                        >
                             <Button 
                                 kind="secondary" 
                                 size="lg"
                                 >
-                                Upload location file
+                                Upload <span className="font-mono">location-history.json</span> file
                             </Button>
                         </FileTrigger>
                     }
@@ -111,9 +118,9 @@ export function IntegrationsPage() {
                         <Button 
                             kind="secondary" 
                             size="lg" 
-                            onPress={() => {}}
+                            onPress={() => { integrations.googleIntegration.locations.items.applyDiff([]) }}
                         >
-                            Log Out
+                            Reset
                         </Button>
                     }
                 />

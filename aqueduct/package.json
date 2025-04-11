@@ -8,5 +8,9 @@
     "googleapis": "^144.0.0",
     "unzipit": "^1.4.3",
     "xstream": "^11.14.0"
+  },
+  "browser": {
+    "googleapis": false,
+    "@google-cloud/local-auth": false
   }
 }

@@ -31,24 +31,43 @@ export function DurationsView({ item }: { item: ViewItemWithDurations}) {
     )
 }
 
-function Durations({ durationInfos }: { durationInfos: (DurationInfo | null)[] }) {
+function Durations({ durationInfos }: { durationInfos: DurationInfo[] }) {
     return (
         <div className="flex gap-0.5 pr-2">
             {durationInfos.map((durationInfo, index) => {
-                if (durationInfo === null) return <div key={index} className="w-1" />
-                const { duration, firstItemInDuration, finalItemInDuration } = durationInfo
-                return (
-                    <div className="flex w-1">
+                const { incoming, outgoing } = durationInfo
+
+                if(!incoming && !outgoing) return <div key={index} className="w-1" />
+
+                const sameDuration: boolean = incoming === outgoing
+                if(sameDuration) {
+                    return (
                         <div 
+                            className="w-1 shrink-0" 
                             key={index} 
-                            className={`w-1 shrink-0 ${firstItemInDuration ? "rounded-t-sm mt-[17px]" : ""} ${finalItemInDuration ? "rounded-b-sm mb-[50%]" : ""}`}
-                            style={{ backgroundColor: duration.color, borderStyle: duration.style }}
+                            style={{ backgroundColor: incoming?.color, borderStyle: incoming?.style }}
                         />
-                        { firstItemInDuration && 
+                    )
+                }
+
+                const sameDurationType = incoming?.source === outgoing?.source && incoming?.type === outgoing?.type
+                return (
+                    <div className="flex w-1" key={index} >
+                        <div className={`flex flex-col ${!sameDurationType ? "gap-1" : ""}`}>
+                            <div
+                                className={`w-1 shrink-0 h-[13px] ${!sameDurationType ? "rounded-b-sm" : ""}`}
+                                style={incoming ? { backgroundColor: incoming.color, borderStyle: incoming.style } : {}}
+                            />
+                            <div 
+                                className={`w-1 shrink-0 grow ${!sameDurationType ? "rounded-t-sm" : ""}`}
+                                style={outgoing ? { backgroundColor: outgoing.color, borderStyle: outgoing.style } : {}}
+                            />
+                        </div>
+                        { outgoing && 
                             <div className="flex mt-[17px] -ml-[3px]">
-                                <TopLeftConnector color={duration.color} />
-                                <div className="h-0.5 mt-0.5" style={{ width: (5 * (durationInfos.length - index - 1)) + 3, backgroundColor: duration.color }}/>
-                                <RightConnector color={duration.color} />
+                                <TopLeftConnector color={outgoing.color} />
+                                <div className="h-0.5 mt-0.5" style={{ width: (5 * (durationInfos.length - index - 1)) + 3, backgroundColor: outgoing.color }}/>
+                                <RightConnector color={outgoing.color} />
                             </div>
                         }
                     </div>

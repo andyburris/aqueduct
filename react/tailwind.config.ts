@@ -17,6 +17,7 @@ const config: Config = {
     fontFamily: {
       serif: ['Libre Caslon Condensed', 'serif'],
       sans: ['Geist VF', 'sans-serif'],
+      mono: ['JetBrains Mono', 'monospace'],
     }
   },
   plugins: [],

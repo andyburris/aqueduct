@@ -12,7 +12,7 @@ export interface Duration {
     start: Date
     end: Date
     color: string
-    style: "solid" | "dashed" | "dotted"
+    style: "solid" | "dashed" | "dotted",
 }
 export class TimelineDurationItem extends TimelineItem {
     constructor(

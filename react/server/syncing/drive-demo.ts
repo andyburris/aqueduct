@@ -10,21 +10,18 @@ const syncInfo: GoogleDriveFileOptions = {
 export async function syncDrive(data: GoogleIntegration) {
     console.log("Syncing Google Drive...")
 
-    if(!process.env.GOOGLE_DRIVE_CLIENT_ID) throw new Error("GOOGLE_DRIVE_CLIENT_ID not set")
-    if(!process.env.GOOGLE_DRIVE_CLIENT_SECRET) throw new Error("GOOGLE_DRIVE_CLIENT_SECRET not set")
+    if(!process.env.GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID not set")
+    if(!process.env.GOOGLE_CLIENT_SECRET) throw new Error("GOOGLE_CLIENT_SECRET not set")
     const drive = new GoogleDriveExtension({
-        clientID: process.env.GOOGLE_DRIVE_CLIENT_ID!,
-        clientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET!,
+        clientID: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
 
     const loadedData = await data.ensureLoaded({ resolve: { authentication: {}, files: true }})
 
     const code = Stream
-        .fromListener<string>(emit => loadedData.authentication.subscribe({}, (auth) => { 
-            if(auth.code) emit(auth.code)
-        }))
-        .map(c => c?.toString())
-        .onEach(c => console.log("Got code: ", c))
+        .fromListener<string>(emit => loadedData.authentication.subscribe({}, (auth) => { if(auth.code) emit(auth.code) }))
+        // .onEach(c => console.log("Got code: ", c))
         .filter(c => c !== undefined)
     code
         .map(code => drive.exchangeCodeForToken(code))

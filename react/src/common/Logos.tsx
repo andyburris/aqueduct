@@ -12,7 +12,7 @@ export const SpotifyLogo = ({ className }: { className?: string }) => <svg xmlns
 
 export const GoogleDriveLogo = ({ className }: { className?: string }) => <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
 <rect width="32" height="32" fill="white"/>
-<g clip-path="url(#clip0_1748_3651)">
+<g clipPath="url(#clip0_1748_3651)">
 <path d="M5.77692 22.9981L6.81346 24.7885C7.02885 25.1654 7.33846 25.4616 7.70192 25.677L11.4038 19.2693H4C4 19.6866 4.10769 20.1039 4.32308 20.4808L5.77692 22.9981Z" fill="#0066DA"/>
 <path d="M15.7519 11.7308L12.05 5.32312C11.6865 5.5385 11.3769 5.83466 11.1615 6.21158L4.32308 18.0577C4.11165 18.4265 4.00028 18.8442 4 19.2693H11.4038L15.7519 11.7308Z" fill="#00AC47"/>
 <path d="M23.8019 25.677C24.1654 25.4616 24.475 25.1654 24.6904 24.7885L25.1212 24.0481L27.1808 20.4808C27.3962 20.1039 27.5039 19.6866 27.5039 19.2693H20.0995L21.675 22.3654L23.8019 25.677Z" fill="#EA4335"/>

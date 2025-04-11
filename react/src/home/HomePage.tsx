@@ -3,8 +3,8 @@
 import { GearSix } from "@phosphor-icons/react";
 import { JazzInspector } from "jazz-inspector";
 import { useAccount } from "jazz-react";
+import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Container } from "..//common/Container";
 import { Link } from "../common/Components";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
@@ -12,12 +12,9 @@ import { SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotify
 import { TestTimelineItem } from "../data/timeline/converters/testconverter";
 import { Duration, TimelineDurationItem, TimelineItem } from "../data/timeline/timeline";
 import { OnboardingPage } from "../onboarding/OnboardingPage";
-import { DayItem } from "./timeline/DayItem";
-import { TimeGapView } from "./timeline/TimeGapView";
-import { TimelineItemSwitcher } from "./timeline/TimelineItemSwitcher";
-import { useState } from "react";
 import { TicksWithIndicator } from "./Ticks";
 import { DurationsView } from "./timeline/DurationsView";
+import { LocationHistoryTimelineItem } from "../data/timeline/converters/locationhistoryconverter";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -26,7 +23,7 @@ export function HomePage() {
 
     return (
         <div className="flex flex-col min-h-screen max-h-screen min-w-screen max-w-screen items-center">
-            <Header className="max-w-4xl w-full">
+            <Header className="max-w-4xl w-full absolute top-0 bg-white z-10">
                 <FountainLogo className="grow"/>
                 <JazzInspector position="bottom right"/>
                 <Link kind="secondary" to="/integrations">
@@ -42,12 +39,14 @@ function Timeline() {
     const [scrollPosition, setScrollPosition] = useState({ startIndex: 0, endIndex: 0 })
     const { me } = useAccount({ resolve: { root: {
         integrations: {
-            spotifyIntegration: { playlists: true },
-            googleIntegration: { files: true },
+            spotifyIntegration: { playlists: true, listeningHistory: { listens: true } },
+            // googleIntegration: { files: true },
+            googleIntegration: { files: true, locations: { items: true } },
             testIntegration: { events: { $each: true} }
         }
     } }})
-    if (!me) return <p>Loading...</p>
+    if (!me) return <p className="mt-16">Loading...</p>
+    // return <p className="mt-16">Loaded</p>
     const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations.spotifyIntegration.playlists
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
     const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files
@@ -58,12 +57,15 @@ function Timeline() {
             "File",
             file.name ?? "",
         ))
+    const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
+        .map(l => new LocationHistoryTimelineItem(l))
     const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
         .map(n => new TestTimelineItem(n))
     
     const allTimelineItems = [
         ...spotifyTimelineItems,
         ...googleDriveTimelineItems,
+        ...locationHistoryTimelineItems,
         ...testTimelineItems,
     ]
     const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
@@ -72,9 +74,9 @@ function Timeline() {
 
 
     return (
-        <div className="flex flex-col flex-grow w-full">
+        <div className="flex flex-col flex-grow w-full overflow-visible">
             <Virtuoso
-                className="flex flex-col h-full flex-grow"
+                className="flex flex-col h-full flex-grow overflow-visible"
                 totalCount={withDurations.length + 1}
                 initialTopMostItemIndex={{ align: "end", index: withDurations.length }}
                 rangeChanged={({ startIndex, endIndex }) => {
@@ -106,14 +108,14 @@ function Timeline() {
 
 export class TimeGap { constructor (public startDate: Date | null, public endDate: Date | null) {}}
 export type ViewItem = TimelineItem | Date | TimeGap
+export type DurationWithSource = Duration & { source: string, type: string }
 export interface DurationInfo {
-    duration: Duration
-    firstItemInDuration: boolean
-    finalItemInDuration: boolean
+    incoming: DurationWithSource | null,
+    outgoing: DurationWithSource | null,
 }
 export class ViewItemWithDurations {
     constructor(
-        public durationInfos: (DurationInfo | null)[],
+        public durationInfos: DurationInfo[],
         public item: ViewItem,
     ) {}
 }
@@ -163,45 +165,46 @@ function insertDays(sortedTimelineItems: TimelineItem[]): ViewItem[] {
 
 function addDurations(sortedViewItems: ViewItem[]): ViewItemWithDurations[] {
     const outItems: ViewItemWithDurations[] = []
-    let currentDurations: (Duration | null)[] = []
+    let currentDurations: DurationInfo[] = []
 
     sortedViewItems.forEach((item, index) => { 
         const nextTimestamp = index < sortedViewItems.length - 1 ? viewItemDate(sortedViewItems[index + 1]) : null
-        let insertedIndex: number | null = null
+
+        // first, check if any incoming durations end at this item
+        const incomingDurations = currentDurations.map(d => d.outgoing)
+        const outgoingDurations = incomingDurations.map(d => {
+            if (!d) return null
+            const isLast = !nextTimestamp || d.end < nextTimestamp
+            return isLast ? null : d
+        })
+
         if(item instanceof TimelineDurationItem) {
-            const firstNullDurationIndex = currentDurations.findIndex(d => d === null)
+            const withSource = { ...item.duration, source: item.source, type: item.type }
+            const firstNullDurationIndex = outgoingDurations.findIndex(d => d === null)
             if (firstNullDurationIndex !== -1) {
-                currentDurations[firstNullDurationIndex] = item.duration
-                insertedIndex = firstNullDurationIndex
+                outgoingDurations[firstNullDurationIndex] = withSource
             } else {
-                currentDurations.push(item.duration)
-                insertedIndex = currentDurations.length - 1
+                outgoingDurations.push(withSource)
             }
         }
 
-        const currentDurationsInfos = currentDurations.map((d, index) => { 
-            if (!d) return null
-            const isLast = !nextTimestamp || d.end < nextTimestamp
+        const currentDurationsInfos: DurationInfo[] = outgoingDurations.map((d, index) => { 
+            const incoming = incomingDurations[index]
             return { 
-                duration: d, 
-                firstItemInDuration: insertedIndex === index,
-                finalItemInDuration: isLast
+                incoming: incoming,
+                outgoing: d,
             }
          })
 
         outItems.push(new ViewItemWithDurations(currentDurationsInfos, item))
 
-        currentDurationsInfos.forEach((durationInfo, index) => {
-            if(durationInfo?.finalItemInDuration) {
-                currentDurations[index] = null
-            }
-        })
+        currentDurations = currentDurationsInfos
     })
 
     const maxConcurrentDurationSlots = Math.max(...outItems.map(item => item.durationInfos.length))
     outItems.forEach(item => {
         while (item.durationInfos.length < maxConcurrentDurationSlots) {
-            item.durationInfos.push(null)
+            item.durationInfos.push({ incoming: null, outgoing: null })
         }
     })
 
