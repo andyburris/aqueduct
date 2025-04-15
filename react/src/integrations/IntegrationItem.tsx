@@ -100,8 +100,12 @@ export function FlowStepItem(props: FlowTimelineItemProps) {
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'short' })
 export function SyncedAtFlowStepItem({ lastSyncStarted, lastSyncFinished, ...props }: { lastSyncStarted?: number, lastSyncFinished?: number } & Omit<FlowTimelineItemProps, "text" | "inProgress">) {
+    const text = 
+        (!lastSyncStarted && !lastSyncFinished) ? "Not synced yet"
+        : (lastSyncFinished ?? 0) > (lastSyncStarted ?? 0) ? `Last synced at ${dateTimeFormatter.format(new Date(lastSyncFinished ?? 0))}`
+        : `Syncing started at ${dateTimeFormatter.format(new Date(lastSyncStarted ?? 0))}`
     return <FlowStepItem
-        text={ lastSyncFinished ? `Last synced at ${dateTimeFormatter.format(new Date(lastSyncFinished))}` : lastSyncStarted ? `Syncing started at ${dateTimeFormatter.format(new Date(lastSyncStarted))}` : "Not synced yet" }
+        text={text}
         inProgress={(lastSyncStarted ?? 0) > (lastSyncFinished ?? 0)}
         {...props}
     />

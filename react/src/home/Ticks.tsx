@@ -23,11 +23,32 @@ export function TicksWithIndicator({ startDate, endDate, currentRange, className
 
     const currentRangeStartPercentage = (currentRange.startDate.getTime() - rangeStartDate.getTime()) / (rangeEndDate.getTime() - rangeStartDate.getTime())
     const currentRangeEndPercentage = (currentRange.endDate.getTime() - rangeStartDate.getTime()) / (rangeEndDate.getTime() - rangeStartDate.getTime())
+    const currentRangePercentageWidth = currentRangeEndPercentage - currentRangeStartPercentage
     return (
         <div className={`flex ${className ? className : ""}`}>
             { ticks }
-            <div className="absolute bg-neutral-900 h-5 rounded-t-md min-w-1 transition-all duration-[50ms]" style={{ left: `${currentRangeStartPercentage * 100}%`, width: `${(currentRangeEndPercentage - currentRangeStartPercentage) * 100}%` }} />
+            <div 
+                className="absolute h-5 rounded-t-md min-w-1 transition-all duration-[50ms]" 
+                style={{ 
+                    left: `${currentRangeStartPercentage * 100}%`, 
+                    width: `${(currentRangePercentageWidth) * 100}%`,
+                    backgroundColor: `rgba(0, 0, 0, ${interpolateBetween([0.001, 0.5], [1.0, 0.12], currentRangePercentageWidth)})`,
+                }}
+                />
             {/* <p>{currentRange.startDate.toDateString()} - {currentRange.endDate.toDateString()}</p> */}
         </div>
     )
+}
+
+function interpolateBetween(inputRange: [number, number], outputRange: [number, number], inputValue: number) {
+    const clampedInputValue = Math.max(inputRange[0], Math.min(inputValue, inputRange[1]))
+
+    const [inputMin, inputMax] = inputRange
+    const [outputMin, outputMax] = outputRange
+
+    const inputRangeSize = inputMax - inputMin
+    const outputRangeSize = outputMax - outputMin
+
+    const normalizedValue = (clampedInputValue - inputMin) / inputRangeSize
+    return outputMin + normalizedValue * outputRangeSize
 }

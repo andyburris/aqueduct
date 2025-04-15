@@ -5,6 +5,7 @@ export function LogoForSource({ source, type, className }: { source: string, typ
         : source === "spotify" ? <SpotifyLogo className={className}/>
         : (source === "google-maps" && type === "location-history") ? <IconLogo className={`bg-blue-100 text-blue-900 ${className}`} icon={<MapPin/>} />
         : source === "google-maps" ? <GoogleMapsLogo className={className}/>
+        : source === "google-photos" ? <GooglePhotosLogo className={className}/>
         : <div className={`bg-neutral-100 flex items-center justify-center text-neutral-500 ${className}`}>{source[0].toLocaleUpperCase()}</div>
 }
 
@@ -60,6 +61,21 @@ const GoogleMapsLogo = ({ className }: { className?: string }) => <svg width="32
 <defs>
 <clipPath id="clip0_1299_1278">
 <rect width="15" height="22" fill="white" transform="translate(8.65002 5)"/>
+</clipPath>
+</defs>
+</svg>
+
+const GooglePhotosLogo = ({ className }: { className?: string }) => <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+<rect width="32" height="32" fill="white"/>
+<g clipPath="url(#clip0_1937_3288)">
+<path d="M10.6187 10.119C13.6561 10.119 16.1187 12.5812 16.1187 15.619V16.1187H5.61831C5.34238 16.1187 5.11865 15.895 5.11865 15.619C5.11865 12.5812 7.58116 10.119 10.6187 10.119Z" fill="#FBBC04"/>
+<path d="M22.1183 10.6187C22.1183 13.6561 19.6562 16.1187 16.6183 16.1187H16.1187V5.61831C16.1187 5.34238 16.3424 5.11865 16.6183 5.11865C19.6562 5.11865 22.1183 7.58116 22.1183 10.6187Z" fill="#EA4335"/>
+<path d="M21.6187 22.1183C18.5812 22.1183 16.1187 19.6562 16.1187 16.6183V16.1187H26.619C26.8949 16.1187 27.1187 16.3424 27.1187 16.6183C27.1187 19.6562 24.6561 22.1183 21.6187 22.1183Z" fill="#4285F4"/>
+<path d="M10.119 21.6187C10.119 18.5812 12.5812 16.1187 15.619 16.1187H16.1187V26.619C16.1187 26.8949 15.895 27.1187 15.619 27.1187C12.5812 27.1187 10.119 24.6561 10.119 21.6187Z" fill="#34A853"/>
+</g>
+<defs>
+<clipPath id="clip0_1937_3288">
+<rect width="22" height="22" fill="white" transform="translate(5 5)"/>
 </clipPath>
 </defs>
 </svg>

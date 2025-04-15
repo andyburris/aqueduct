@@ -6,7 +6,7 @@
 import { Account, CoMap, Group, Profile, co } from "jazz-tools";
 import { ListeningHistory, ListensList, PlaylistList, Playlists, SpotifyIntegration } from "./integrations/spotify-integration";
 import { EventList, MOCK_TEST_EVENTS, TestIntegration } from "./integrations/test-integration";
-import { FileList, GoogleAuthentication, GoogleIntegration, LocationHistory, LocationHistoryList } from "./integrations/google-integration";
+import { DriveFiles, DriveFileList, GoogleAuthentication, GoogleIntegration, LocationHistory, LocationHistoryList, GooglePhotos, GooglePhotosList } from "./integrations/google-integration";
 
 /** The account profile is an app-specific per-user public `CoMap`
  *  where you can store top-level objects for that user */
@@ -60,10 +60,15 @@ export class FountainUserAccount extends Account {
           }, group),
           googleIntegration: GoogleIntegration.create({ 
             authentication: GoogleAuthentication.create({}, group),
-            files: FileList.create([], group),
+            files: DriveFiles.create({
+              items: DriveFileList.create([], group),
+            }, group),
             locations: LocationHistory.create({
               items: LocationHistoryList.create([], group),
             }, group),
+            photos: GooglePhotos.create({
+              items: GooglePhotosList.create([], group),
+            }, group)
           }, group),
           testIntegration: TestIntegration.create({
             events: EventList.create(MOCK_TEST_EVENTS(), group),

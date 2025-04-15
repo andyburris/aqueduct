@@ -18,7 +18,7 @@ export function DefaultTimelineView({ item }: { item: TimelineItem }) {
 
 export function BasicTimelineView({ item, children }: { item: TimelineItem, children: React.ReactElement }) {
     return (
-        <div className="flex gap-2 pr-5 py-2" style={{ ["--icon-border" as string]: item instanceof TimelineDurationItem ? item.duration.color : "var(--neutral-200)"}}>
+        <div className="flex gap-2 pr-5 py-2" style={{ ["--icon-border" as string]: item instanceof TimelineDurationItem ? item.duration.color : "rgb(229, 229, 229)"}}>
             <LogoForSource 
                 source={item.source.toLowerCase()} 
                 type={item.type.toLowerCase()}

@@ -8,6 +8,7 @@ function googleAuthUrl(clientId: string, redirectUri: string, state: string) {
     const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const scopes = [
       'https://www.googleapis.com/auth/drive.metadata.readonly',
+      'https://www.googleapis.com/auth/drive.readonly',
     ].join(' ');
     
     const params = new URLSearchParams({

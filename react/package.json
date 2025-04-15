@@ -15,7 +15,9 @@
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
     "@spotify/web-api-ts-sdk": "^1.2.0",
+    "@types/heic-convert": "^2.1.0",
     "aqueduct": "link:aqueduct",
+    "heic-convert": "^2.1.0",
     "jazz-inspector": "^0.13.4",
     "jazz-nodejs": "^0.13.4",
     "jazz-react": "^0.13.4",
@@ -24,7 +26,8 @@
     "react-aria-components": "^1.7.1",
     "react-dom": "^18.3.1",
     "react-router": "^7.4.1",
-    "react-virtuoso": "^4.12.6"
+    "react-virtuoso": "^4.12.6",
+    "sharp": "^0.34.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

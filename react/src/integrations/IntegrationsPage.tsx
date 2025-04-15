@@ -17,7 +17,7 @@ import { IntegrationItem, FlowStepItem, SyncedAtFlowStepItem } from "./Integrati
 export function IntegrationsPage() {
     const { me } = useAccount({ resolve: { root: { integrations: {
         spotifyIntegration: { playlists: { items: true }, listeningHistory: { fileInProcess: true, listens: true } },
-        googleIntegration: { authentication: {}, locations: { items: true }, },
+        googleIntegration: { authentication: {}, locations: { items: true }, files: { items: true }, photos: { items: true } },
     } }}})
     if(!me) return <p>Loading...</p>
     const integrations = me.root.integrations
@@ -67,24 +67,80 @@ export function IntegrationsPage() {
                         name: "Log in to Drive",
                         isConnected: integrations.googleIntegration.authentication.credentials !== undefined,
                         children: <div className="flex flex-col gap-4">
-                            <Button 
-                                kind="secondary" 
-                                size="md"
-                                onPress={() => window.open(generateGoogleAuthURL()) }>
-                                Authenticate with Google
-                            </Button>
-                            <Button 
-                                kind="secondary" 
-                                size="md" 
-                                onPress={() => {
-                                    // removeGoogleAuth()
-                                    // updateGoogleAuthStatus("unauthenticated")
-                                }}
-                            >
-                                Log Out
-                            </Button>
+                            <FlowStepItem
+                                text="Log in to Google Drive"
+                                state={integrations.googleIntegration.authentication.credentials !== undefined ? "done" : "undone"}
+                                undoneChildren={
+                                    <Button 
+                                        kind="secondary" 
+                                        size="lg"
+                                        onPress={() => window.open(generateGoogleAuthURL())}>
+                                        Authenticate with Google
+                                    </Button>
+                                }
+                                doneChildren={
+                                    <Button 
+                                        kind="secondary" 
+                                        size="lg" 
+                                        onPress={() => {
+                                            integrations.googleIntegration.authentication.credentials = undefined
+                                            integrations.googleIntegration.authentication.code = undefined
+                                        }}>
+                                        Log Out
+                                    </Button>
+                                }
+                            />
+                            <SyncedAtFlowStepItem
+                                lastSyncStarted={integrations.googleIntegration.files.lastSyncStarted?.getTime()}
+                                lastSyncFinished={integrations.googleIntegration.files.lastSyncFinished?.getTime()}
+                                state={integrations.googleIntegration.files.items.length > 0 ? "done" : "undone"}
+                                doneChildren={
+                                    <Button 
+                                        kind="secondary" 
+                                        size="md" 
+                                        onPress={() => integrations.googleIntegration.files.items.applyDiff([])}
+                                    >
+                                        Reset
+                                    </Button>
+                                }
+                            />
                         </div>,
                     }]}
+                />
+                <IntegrationItem
+                    id="google-photos"
+                    name="Google Photos"
+                    flows={[
+                        {
+                            name: "Photos",
+                            isConnected: integrations.googleIntegration.photos.items.length > 0,
+                            children: <div className="flex flex-col gap-4">
+                                <FlowStepItem
+                                    text="Log in to Google Drive"
+                                    state={integrations.googleIntegration.authentication.credentials !== undefined ? "done" : "undone"}
+                                />
+                                <FlowStepItem
+                                    text="Export Google Takeout file to Drive"
+                                    secondaryText="You can get your Google Takeout file at takeout.google.com. Be sure to export it to your Google Drive."
+                                    state={integrations.googleIntegration.files.items.some(i => i.name?.startsWith("takeout-") && i.name?.endsWith(".zip")) ? "done" : "undone"}
+                                    undoneChildren={
+                                        <Link 
+                                            kind="secondary"
+                                            size="md"
+                                            to="https://takeout.google.com/"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >Export your Google Takeout data</Link>
+                                    }
+                                />
+                                <SyncedAtFlowStepItem
+                                    lastSyncStarted={integrations.googleIntegration.photos.lastSyncStarted?.getTime()} 
+                                    lastSyncFinished={integrations.googleIntegration.photos.lastSyncFinished?.getTime()} 
+                                    state={integrations.googleIntegration.photos.items.length > 0 ? "done" : "undone"}
+                                />
+                            </div>
+                        }
+                    ]}
                 />
                 <IntegrationItem
                     id="google-maps"

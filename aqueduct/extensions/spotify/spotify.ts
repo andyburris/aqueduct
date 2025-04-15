@@ -1,7 +1,7 @@
-import { AccessToken, Page, PlaylistedTrack, SimplifiedPlaylist, SimplifiedTrack, SpotifyApi, Track, MaxInt } from "@spotify/web-api-ts-sdk";
-import { Change, diffObject, fetchWindowed, generateUUID, fetchDiff, SyncResult, SyncResultChanges } from "../../utils";
-import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
+import { AccessToken, MaxInt, Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
 import { unzip } from "unzipit";
+import { fetchDiff, fetchWindowed } from "../../utils";
+import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
 
 export interface FullSpotifyPlaylist extends SimplifiedPlaylist {
     fullTracks: PlaylistedTrack<Track>[]
@@ -13,17 +13,23 @@ export class SpotifyExtension {
     ) {}
 
     public playlists = {
-        getAll: (authToken: AccessToken, previous?: FullSpotifyPlaylist[]) => {
+        getAll: async (authToken: AccessToken, previous?: FullSpotifyPlaylist[]) => {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
-            return getAllPages(api.currentUser.playlists.playlists(), offset => api.currentUser.playlists.playlists(50, offset))
+            const playlists = await getAllPages(api.currentUser.playlists.playlists(), offset => api.currentUser.playlists.playlists(50, offset))
                 .then(playlists => playlists.slice(0, 5))
-                .then(async playlists => {
-                    const fullPlaylists: FullSpotifyPlaylist[] = []
-                    for (const p of playlists) {
-                        const unchangedOriginal = previous?.find(pp => pp.id === p.id && pp.snapshot_id === p.snapshot_id)
-                        if (unchangedOriginal) {
-                            fullPlaylists.push(unchangedOriginal)
-                        } else {
+
+            return await fetchDiff({
+                currentItems: playlists,
+                savedItems: previous ?? [],
+                currentIdentifier: p => p.id,
+                savedIdentifier: p => p.id,
+                currentSignature: p => p.id + "|" + p.snapshot_id,
+                savedSignature: p => p.id + "|" + p.snapshot_id,
+                keepStaleItems: false,
+                convert: {
+                    all: async (changed) => {
+                        const fullPlaylists: FullSpotifyPlaylist[] = []
+                        for (const p of changed) {
                             const tracks = await getAllPages(
                                 api.playlists.getPlaylistItems(p.id), 
                                 offset => api.playlists.getPlaylistItems(p.id, undefined, undefined, 50, offset),
@@ -33,26 +39,10 @@ export class SpotifyExtension {
                             console.log(`Finished syncing tracks for playlist ${playlists.indexOf(p) + 1}/${playlists.length}`)
                             await new Promise(r => setTimeout(r, 200)) //delay to prevent rate limits
                         }
-                    }
-                    return fullPlaylists
-                })
-                .then(playlists => {
-                    const additions = playlists.filter(newPlaylist => !previous?.find(p => p.id === newPlaylist.id))
-                    const updates = playlists.filter(newPlaylist => {
-                        const oldPlaylist = previous?.find(p => p.id === newPlaylist.id)
-                        return oldPlaylist && newPlaylist.snapshot_id !== oldPlaylist?.snapshot_id
-                    })
-                    const deletions = previous?.filter(p => !playlists.find(newPlaylist => newPlaylist.id === p.id)) ?? []
-                    const result: SyncResult<FullSpotifyPlaylist[]> = {
-                        data: playlists,
-                        changes: new SyncResultChanges(
-                            additions.map(p => ({ operation: "add", value: p } as Change)),
-                            updates.map(p => ({ operation: "update", value: p } as Change)),
-                            deletions.map(p => ({ operation: "delete", value: p } as Change)),
-                        )
-                    }
-                    return result
-                })
+                        return fullPlaylists
+                    },
+                }
+            })
         },
     }
     public listens = {
@@ -63,8 +53,9 @@ export class SpotifyExtension {
             return await fetchDiff({
                 currentItems: [current].filter(current => "album" in current.item), //TODO: add podcast support
                 savedItems: previous ?? [],
-                currentSignature: current => new Date(current.timestamp).toISOString() + "|" + current.item.uri,
-                savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                currentIdentifier: current => new Date(current.timestamp).toISOString() + "|" + current.item.uri,
+                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                keepStaleItems: true,
                 convert: { each: current => currentlyPlayingToSpotifyListen(current) }
             })
         },
@@ -78,9 +69,10 @@ export class SpotifyExtension {
             return await fetchDiff({
                 currentItems: items.slice(1),
                 savedItems: previous ?? [],
-                currentSignature: ph => new Date(items[items.indexOf(ph) - 1].played_at).toISOString() + "|" + ph.track.uri,
-                savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
-                convert: { all: (currents, _, signatures) => {
+                currentIdentifier: ph => new Date(items[items.indexOf(ph) - 1].played_at).toISOString() + "|" + ph.track.uri,
+                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                keepStaleItems: true,
+                convert: { all: (currents) => {
                     // console.log(`converting ${currents.length} recents: \n`, currents.map((c, i) => `${c.track.name} | ${new Date(signatures[i].split("|")[0]).toTimeString()} | ${new Date(items[i].played_at).toTimeString()}`).join(",\n"))
                     return currents
                         .map((current, index) => playHistoryToSpotifyListen(current, items[items.indexOf(current) - 1].played_at))
@@ -109,8 +101,9 @@ export class SpotifyExtension {
             return fetchDiff({
                 currentItems: exported,
                 savedItems: previous ?? [],
-                currentSignature: (raw) => new Date(raw.ts).toISOString() + "|" + raw.spotify_track_uri,
-                savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                currentIdentifier: (raw) => new Date(raw.ts).toISOString() + "|" + raw.spotify_track_uri,
+                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                keepStaleItems: true, //TODO: remove stale items before latest timestamp
                 createCache: (savedItems) => new Map(savedItems.filter(l => "album" in l.track).map(l => [l.uri, l.track as Track])),
                 convert: {
                     all: async (raws, cache) => {

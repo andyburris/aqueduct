@@ -3,6 +3,7 @@ import { InboxMessage, RegisterClientMessage, WorkerAccount } from "../jazz";
 import { syncSpotify } from "./syncing/spotify-demo";
 import { syncDrive } from "./syncing/drive-demo";
 import { syncLocations } from "./syncing/location-history-demo";
+import { syncPhotos } from "./syncing/photos-demo";
 
 const localAddress = "ws://127.0.0.1:4200"
 
@@ -36,6 +37,7 @@ await workerAccount.root.integrations.subscribe(
       await syncSpotify(loadedIntegrations.spotifyIntegration)
       await syncDrive(loadedIntegrations.googleIntegration)
       await syncLocations(loadedIntegrations.googleIntegration)
+      syncPhotos(loadedIntegrations.googleIntegration)
 
       runningAccounts.set(newA.id, () => { 
         console.log("Unsubscribing for account", newA.id)

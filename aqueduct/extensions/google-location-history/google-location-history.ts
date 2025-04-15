@@ -1,5 +1,4 @@
 import { places_v1 } from "googleapis";
-import { unzip, ZipEntry } from 'unzipit';
 import { fetchDiff } from "../../utils";
 
 export interface LatLong { latitude: number, longitude: number }
@@ -49,24 +48,15 @@ export class GoogleLocationHistoryExtension {
         this.placesClient = new places_v1.Places({ auth: process.env.GOOGLE_MAPS_API_KEY! })
     }
 
-    public async unzipFiles(files: File[]) {
-        const zips = await Promise.all(files.map(async f => await unzip(await f.arrayBuffer())))
-        const allEntries = zips.reduce((acc, zi) => { return {...acc, ...zi.entries } }, {})
-    }
-
-    async extractLegacyLocationHistory(entries: { [key: string]: ZipEntry }) {
-        const records = await entries["Takeout/Location History (Timeline)/Records.json"].json()
-
-    }
-
     async parseCurrentLocationHistory(json: RawGoogleLocationHistoryItem[], previousLocationHistory: GoogleLocationHistoryItem[]): Promise<GoogleLocationHistoryItem[]> {
         const visitsAndActivities = json.filter(i => "visit" in i || "activity" in i)
         const results = await fetchDiff({
             currentItems: visitsAndActivities,
             savedItems: previousLocationHistory,
-            currentSignature: (raw) => raw.startTime + "|" + raw.endTime + "|" + (isRawVisit(raw) ? raw.visit.topCandidate.placeLocation : raw.activity.start),
-            savedSignature: l => l.startTimestamp + "|" + l.endTimestamp + "|" + ("visit" in l ? l.visit.topCandidate.placeLocation : (l.activity.start.latitude + "," + l.activity.start.longitude)),
+            currentIdentifier: (raw) => raw.startTime + "|" + raw.endTime + "|" + (isRawVisit(raw) ? raw.visit.topCandidate.placeLocation : raw.activity.start),
+            savedIdentifier: l => l.startTimestamp + "|" + l.endTimestamp + "|" + ("visit" in l ? l.visit.topCandidate.placeLocation : (l.activity.start.latitude + "," + l.activity.start.longitude)),
             createCache: (savedItems) => new Map(savedItems.filter(l => "visit" in l).map(l => [l.visit.topCandidate.placeID, { name: l.visit.topCandidate.placeInfo.name, address: l.visit.topCandidate.placeInfo.address }])),
+            keepStaleItems: true,
             convert: {
                 each: async (rawItem, placeInfoCache) => {
                     // console.log(`Parsing item: ${JSON.stringify(rawItem)}`)

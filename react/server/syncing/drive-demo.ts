@@ -3,7 +3,7 @@ import { GoogleIntegration } from "../../jazz/schema/integrations/google-integra
 
 const syncInfo: GoogleDriveFileOptions = {
     pageSize: 50,
-    fields: "files(id, name, modifiedTime, createdTime)",
+    fields: "files(id, name, modifiedTime, createdTime, mimeType)",
     q: "trashed=false",
 }
 
@@ -17,7 +17,7 @@ export async function syncDrive(data: GoogleIntegration) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
 
-    const loadedData = await data.ensureLoaded({ resolve: { authentication: {}, files: true }})
+    const loadedData = await data.ensureLoaded({ resolve: { authentication: {}, files: { items: true } }})
 
     const code = Stream
         .fromListener<string>(emit => loadedData.authentication.subscribe({}, (auth) => { if(auth.code) emit(auth.code) }))
@@ -32,33 +32,30 @@ export async function syncDrive(data: GoogleIntegration) {
         })
 
     const storedToken = Stream
-        .fromListener<GoogleCredentials>(emit => loadedData.authentication.subscribe({}, (auth) => { 
-            if(auth.credentials) emit(auth.credentials)
+        .fromListener<GoogleCredentials | undefined>(emit => loadedData.authentication.subscribe({}, (auth) => { 
+            emit(auth.credentials)
         }))
-        .filter(t => isGoogleCredentials(t))
 
     const token = storedToken
         // .onEach(t => console.log("Got google token: ", t))
-        .filter(t => !!t)
 
     const files = token
         .every(
-            seconds(15), 
-            // data.lastTriedSyncedAt?.getTime(), 
-            // syncedAt => data.lastTriedSyncedAt = new Date(syncedAt)
+            seconds(10), 
+            loadedData.files.lastSyncStarted?.getTime(), 
+            syncedAt => loadedData.files.lastSyncFinished = new Date(syncedAt)
         )
+        .filter(t => !!t)
         .map(async token => {
-            const previousFiles = (await data.ensureLoaded({ resolve: { files: true }})).files
+            const previousFiles = loadedData.files.items
             console.log(`getting files with ${previousFiles.length} previous files`)
             return drive.getFiles(token, syncInfo, previousFiles)
         })
  
     files
-        // .onEach(files => sharedStore.setCell("extensions", "google-drive", "files", files))
         .listen(async files => {
-            const loaded = await data.ensureLoaded({ resolve: { files: true }})
-            loaded.files.applyDiff(files.data)
-            // data.lastSyncedAt = new Date()
+            loadedData.files.items.applyDiff(files.allItems)
+            loadedData.files.lastSyncFinished = new Date()
         })
 }
 

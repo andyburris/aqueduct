@@ -1,5 +1,5 @@
 import * as google from "googleapis"
-import { Change, SyncResult, SyncResultChanges } from "../../utils"
+import { fetchDiff, FetchDiffOutput } from "../../utils"
 
 export type GoogleCredentials = google.Auth.Credentials
 export type GoogleDriveFileOptions = google.drive_v3.Params$Resource$Files$List
@@ -30,14 +30,13 @@ export class GoogleDriveExtension {
         })
     }
 
+    public async getFiles(token: GoogleCredentials, options: GoogleDriveFileOptions, previous?: GoogleDriveFile[]): Promise<FetchDiffOutput<GoogleDriveFile>> {
+        this.oauthClient.setCredentials(token)
+        if (!this.oauthClient.credentials.scope?.split(" ").includes("https://www.googleapis.com/auth/drive.metadata.readonly")) {
+            throw new Error(`Google Drive: Token does not have required scope (currently only has ${this.oauthClient.credentials.scope})`)
+        }
 
-
-    public getFiles(token: GoogleCredentials, options: GoogleDriveFileOptions, previous?: GoogleDriveFile[]): Promise<SyncResult<GoogleDriveFile[]>> {
-        return new Promise((resolve, reject) => {
-            this.oauthClient.setCredentials(token)
-            if (!this.oauthClient.credentials.scope?.split(" ").includes("https://www.googleapis.com/auth/drive.metadata.readonly")) {
-                reject(`Google Drive: Token does not have required scope (currently only has ${this.oauthClient.credentials.scope})`)
-            }
+        const files: GoogleDriveFile[] = await new Promise((resolve, reject) => {
             this.driveAPI.files.list(options, (err, response) => {
                 if (err) {
                     console.error("Error getting files: ", JSON.stringify(err, null, 2))
@@ -49,24 +48,33 @@ export class GoogleDriveExtension {
                     reject(response)
                     return
                 }
-
-                const additions = response.data.files.filter(f => !previous?.find(p => p.id === f.id))
-                const updates = response.data.files
-                    .filter(f => {
-                        const match = previous?.find(p => p.id === f.id)
-                        return match && (match.modifiedTime !== f.modifiedTime || match.createdTime !== f.createdTime)
-                    })
-                const deletions = previous?.filter(p => !response.data.files!.find(f => f.id === p.id))
-                const result: SyncResult<GoogleDriveFile[]> = {
-                    data: response.data.files,
-                    changes: new SyncResultChanges(
-                        additions.map(f => ({ operation: "add", value: f } as Change)),
-                        updates.map(f => ({ operation: "update", value: f } as Change)),
-                        deletions!.map(f => ({ operation: "delete", value: f } as Change)),
-                    )
-                }
-                resolve(result)
+                resolve(response.data.files)
             })
+        })
+
+        return await fetchDiff({
+            currentItems: files,
+            savedItems: previous ?? [],
+            currentIdentifier: (file) => file.id!,
+            savedIdentifier: (file) => file.id!,
+            keepStaleItems: false,
+            convert: { each: (file) => file },
+        })
+    }
+
+    public async getFileContent(token: GoogleCredentials, file: GoogleDriveFile): Promise<ArrayBuffer> {
+        this.oauthClient.setCredentials(token)
+        if (!this.oauthClient.credentials.scope?.split(" ").includes("https://www.googleapis.com/auth/drive.readonly")) {
+            throw new Error(`Google Drive: Token does not have required scope (currently only has ${this.oauthClient.credentials.scope})`)
+        }
+
+        const response = await this.driveAPI.files.get({ fileId: file.id!, alt: "media" }, { responseType: "arraybuffer" })
+        return response.data as ArrayBuffer
+    }
+    public getFilesContent(token: GoogleCredentials, files: GoogleDriveFile[]): Promise<ArrayBuffer[]> {
+        return Promise.all(files.map(file => this.getFileContent(token, file))).catch(err => {
+            console.error("Error getting files content: ", err)
+            throw err
         })
     }
 }

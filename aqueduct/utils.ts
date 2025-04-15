@@ -1,38 +1,15 @@
-export type SyncResult<T> = {
-    data: T,
-    changes: SyncResultChanges,
-}
-export class SyncResultChanges {
-    constructor(public additions: Change[], public updates: Change[], public deletions: Change[]) {}
-    all() { return [...this.additions, ...this.updates, ...this.deletions] }
-}
-export type Change = {
-    path?: string,
-    operation: "add" | "delete" | "update",
-    value: any,
-}
-export function diffObject(original: any, updated: any, path: string = ''): Change[] {
-    const changes: Change[] = []
-    for(const key in updated) {
-        const currentPath = path ? `${path}.${key}` : key
-        if (!original.hasOwnProperty(key)) {
-            changes.push({ path: currentPath, operation: "add", value: updated[key] })
-        } else if (typeof updated[key] === 'object' && updated[key] !== null && typeof original[key] === 'object' && original[key] !== null) {
-            changes.push(...diffObject(original[key], updated[key], currentPath))
-        } else if (original[key] !== updated[key]) {
-            changes.push({ path: currentPath, operation: "update", value: updated[key] })
-        }
-    }
-    for(const key in original) {
-        const currentPath = path ? `${path}.${key}` : key
-        if (!updated.hasOwnProperty(key)) {
-            changes.push({ path: currentPath, operation: "delete", value: original[key] })
-        }
-    }
-    return changes
-}
+import { ZipEntry, unzip } from "unzipit"
 
 export function seconds(s: number) { return s * 1000 }
+
+export async function unzipFile(file: File | ArrayBuffer) { return unzipFiles([file] as File[] | ArrayBuffer[]) }
+export async function unzipFiles(files: File[] | ArrayBuffer[]): Promise<{ [key: string]: ZipEntry }> {
+    const buffers = files[0] instanceof ArrayBuffer ? (files as ArrayBuffer[]) : await Promise.all((files as File[]).map(f => f.arrayBuffer()))
+    const zips = await Promise.all(buffers.map(async b => await unzip(b)))
+    const allEntries: { [key: string]: ZipEntry } = zips.reduce((acc, zi) => { return {...acc, ...zi.entries } }, {})
+
+    return allEntries
+}
 
 export function generateUUID() {
     // Check if we're in a browser or Node.js environment
@@ -66,36 +43,44 @@ function manualUUID() {
     });
 }
 
-export interface FetchDiffOptions<Current, Saved, Cache = Map<string, Saved>, Signature = string> {
+export interface FetchDiffOptions<Current, Saved, Cache = Map<string, Saved>, Identifier = string, Signature = Identifier> {
     currentItems: Current[],
     savedItems: Saved[],
-    currentSignature: (currentItem: Current) => Signature,
-    savedSignature: (savedItem: Saved) => Signature,
-    convert: FetchDiffConvert<Current, Saved, Cache, Signature>,
+    currentIdentifier: (currentItem: Current) => Identifier,
+    savedIdentifier: (savedItem: Saved) => Identifier,
+    currentSignature?: (currentItem: Current) => Signature,
+    savedSignature?: (savedItem: Saved) => Signature,
+    convert: FetchDiffConvert<Current, Saved, Cache>,
     createCache?: (savedItems: Saved[]) => Cache,
+    keepStaleItems: boolean | ((staleItem: Saved, nonStaleItems: Saved[]) => boolean),
     // refreshCached?: undefined
 }
 
-export type FetchDiffConvert<Current, Saved, Cache, Signature> = FetchDiffConvertAll<Current, Saved, Cache, Signature> | FetchDiffConvertEach<Current, Saved, Cache, Signature>
-export interface FetchDiffConvertAll<Current, Saved, Cache, Signature> {
-    all: (currentItems: Current[], cache: Cache, signatures: Signature[]) => Saved[] | Promise<Saved[]>,
+//TODO: decide if I want to add Identifier and Signature params back
+export type FetchDiffConvert<Current, Saved, Cache> = FetchDiffConvertAll<Current, Saved, Cache> | FetchDiffConvertEach<Current, Saved, Cache>
+export interface FetchDiffConvertAll<Current, Saved, Cache> {
+    all: (currentChangedItems: Current[], cache: Cache) => Saved[] | Promise<Saved[]>,
 }
-export interface FetchDiffConvertEach<Current, Saved, Cache, Signature> {
-    each: (currentItem: Current, cache: Cache, signature: Signature) => Saved | Promise<Saved>,
+export interface FetchDiffConvertEach<Current, Saved, Cache> {
+    each: (currentChangedItem: Current, cache: Cache) => Saved | Promise<Saved>,
 }
 
 export interface FetchDiffOutput<Saved> {
     allItems: Saved[],
     newItems: Saved[],
+    updatedItems: Saved[],
     // updatedItems: { item: Saved, changes: Change[] }[],
-    currentButUnchangedItems: Saved[],
+    unchangedItems: Saved[],
+    keptStaleItems: Saved[],
+    removedItems: Saved[],
 }
 
-export async function fetchDiff<Current, Saved, Cache = Map<string, Saved>, Signature = string>(options: FetchDiffOptions<Current, Saved, Cache, Signature>): Promise<FetchDiffOutput<Saved>> {
-    const { currentItems, savedItems, currentSignature, savedSignature, convert, createCache } = options
+export async function fetchDiff<Current, Saved, Cache = Map<string, Saved>, Identifier = string, Signature = Identifier>(options: FetchDiffOptions<Current, Saved, Cache, Identifier, Signature>): Promise<FetchDiffOutput<Saved>> {
+    const { currentItems, savedItems, currentIdentifier, savedIdentifier, currentSignature = currentIdentifier, savedSignature = savedIdentifier, convert, createCache, keepStaleItems } = options
     
+    const savedIdentifiers = new Map(savedItems.map(si => [savedIdentifier(si), si]))
     const savedSignatures = new Map(savedItems.map(si => [savedSignature(si), si]))
-    const [newItems, unchangedItems] = currentItems.reduce<[Current[], Saved[]]>((acc, curr) => {
+    const [changedItems, unchangedItems] = currentItems.reduce<[Current[], Saved[]]>((acc, curr) => {
         const signature = currentSignature(curr)
         if (savedSignatures.has(signature)) {
             acc[1].push(savedSignatures.get(signature)!)
@@ -107,16 +92,45 @@ export async function fetchDiff<Current, Saved, Cache = Map<string, Saved>, Sign
 
     const cache: Cache = createCache ? createCache(savedItems) : savedSignature as Cache
     const processedItems: Saved[] = ("each" in convert)
-        ? await Promise.all(newItems.map(item => {
-            const ps: Promise<Saved> = Promise.resolve(convert.each(item, cache, currentSignature(item))) //TODO: error handling
+        ? await Promise.all(changedItems.map(item => {
+            const ps: Promise<Saved> = Promise.resolve(convert.each(item, cache)) //TODO: error handling
             return ps
         }))
-        : await Promise.resolve(convert.all(newItems, cache, newItems.map(i => currentSignature(i)))).catch(err => console.error("Error converting items", err)) ?? []   
+        : await Promise.resolve(convert.all(changedItems, cache)).catch(err => console.error("Error converting items", err)) ?? []   
+
+    const [newItems, updatedItems] = processedItems.reduce<[Saved[], Saved[]]>((acc, i) => {
+        const identifier = savedIdentifier(i)
+        if (savedIdentifiers.has(identifier)) {
+            acc[1].push(i)
+        } else {
+            acc[0].push(i)
+        }
+        return acc
+    }, [[], []])
+
+    const allNonStaleItems = [...newItems, ...updatedItems, ...unchangedItems]
+    const allNonStaleIdentifiers = allNonStaleItems.map(i => savedIdentifier(i))
+    const allStaleItems = savedItems.filter(i => !allNonStaleIdentifiers.includes(savedIdentifier(i)))
+
+    const [removedItems, keptStaleItems] = 
+        keepStaleItems === true ? [[], allStaleItems]
+        : keepStaleItems === false ? [allStaleItems, []]
+        : allStaleItems.reduce<[Saved[], Saved[]]>((acc, i) => {
+            if (keepStaleItems(i, allNonStaleItems)) {
+                acc[1].push(i)
+            } else {
+                acc[0].push(i)
+            }
+            return acc
+        }, [[], []])
 
     return {
-        allItems: [...savedItems, ...processedItems],
-        newItems: processedItems,
-        currentButUnchangedItems: unchangedItems,
+        allItems: [...allNonStaleItems, ...keptStaleItems],
+        newItems: newItems,
+        updatedItems: updatedItems,
+        unchangedItems: unchangedItems,
+        keptStaleItems: keptStaleItems,
+        removedItems: removedItems,
     }
 }
 
@@ -158,6 +172,6 @@ export async function fetchWindowed<In, Out>(options: FetchWindowedOptions<In, O
         }
         return results
     }
-
-
 }
+
+//TODO: fetchPaged

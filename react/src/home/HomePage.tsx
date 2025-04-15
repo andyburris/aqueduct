@@ -15,6 +15,7 @@ import { OnboardingPage } from "../onboarding/OnboardingPage";
 import { TicksWithIndicator } from "./Ticks";
 import { DurationsView } from "./timeline/DurationsView";
 import { LocationHistoryTimelineItem } from "../data/timeline/converters/locationhistoryconverter";
+import { GooglePhotoTimelineItem } from "../data/timeline/converters/googlephotoconverter";
 
 export function HomePage() {
     const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
@@ -41,7 +42,7 @@ function Timeline() {
         integrations: {
             spotifyIntegration: { playlists: { items: true }, listeningHistory: { listens: true } },
             // googleIntegration: { files: true },
-            googleIntegration: { files: true, locations: { items: true } },
+            googleIntegration: { files: { items: true }, locations: { items: true }, photos: { items: { $each: { photo: true } } } },
             testIntegration: { events: { $each: true} }
         }
     } }})
@@ -51,8 +52,8 @@ function Timeline() {
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
     const spotifyListenItems = me.root.integrations.spotifyIntegration.listeningHistory.listens
         .map(listen => new SpotifyListenTimelineItem(listen))
-    const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files
-        ?.map(file => new TimelineItem(
+    const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files.items
+        .map(file => new TimelineItem(
             file.id ?? "",
             new Date(file.modifiedTime ?? 0),
             "google-drive",
@@ -61,6 +62,8 @@ function Timeline() {
         ))
     const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
         .map(l => new LocationHistoryTimelineItem(l))
+    const googlePhotosTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.photos.items
+        .map(p => new GooglePhotoTimelineItem(p.photo, p.metadata))
     // const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
     //     .map(n => new TestTimelineItem(n))
     
@@ -69,6 +72,7 @@ function Timeline() {
         ...spotifyListenItems,
         ...googleDriveTimelineItems,
         ...locationHistoryTimelineItems,
+        ...googlePhotosTimelineItems,
         // ...testTimelineItems,
     ]
     const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
@@ -100,8 +104,9 @@ function Timeline() {
                     startDate={sortedTimelineItems[0]?.timestamp ?? new Date()} 
                     endDate={sortedTimelineItems[sortedTimelineItems.length - 1]?.timestamp ?? new Date()}
                     currentRange={{ 
-                        startDate: viewItemDate(withDays[scrollPosition.startIndex < withDurations.length ? scrollPosition.startIndex : scrollPosition.startIndex - 1]), 
-                        endDate: viewItemDate(withDays[scrollPosition.endIndex < withDurations.length ? scrollPosition.endIndex : scrollPosition.endIndex - 1]) }}
+                        startDate: viewItemDate(withDays[scrollPosition.startIndex < withDays.length ? scrollPosition.startIndex : withDays.length - 1]), 
+                        endDate: viewItemDate(withDays[scrollPosition.endIndex < withDays.length ? scrollPosition.endIndex : withDays.length - 1]) 
+                    }}
                     className="pt-3 w-full h-8"
                 />
             </div>

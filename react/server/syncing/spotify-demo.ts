@@ -26,7 +26,7 @@ export async function syncSpotify(data: SpotifyIntegration) {
         console.log(`getting playlists with ${previousPlaylists.length} previous playlists`)
         return spotify.playlists.getAll(token, previousPlaylists)
       }, 1)
-      .listen(playlists => loadedData.playlists.items.applyDiff(playlists.data));
+      .listen(playlists => loadedData.playlists.items.applyDiff(playlists.allItems));
 
     const listensRefresh = token
       .every(
