@@ -59,6 +59,7 @@ function Timeline() {
             "google-drive",
             "File",
             file.name ?? "",
+            file.webViewLink ?? file.webContentLink ?? undefined,
         ))
     const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
         .map(l => new LocationHistoryTimelineItem(l))

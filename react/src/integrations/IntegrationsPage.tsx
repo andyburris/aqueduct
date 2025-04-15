@@ -248,17 +248,14 @@ export function IntegrationsPage() {
                                         <div className="flex gap-2">
                                             <FileTrigger 
                                                 allowsMultiple={false}
-                                                onSelect={async l => {
-                                                    const file = l?.[0]
-                                                    if(!file) return
-                                                    const json = JSON.parse(await file.text())
-                                                    integrations.spotifyIntegration.listeningHistory.fileInProcess = json
+                                                onSelect={async f => {
+                                                    integrations.spotifyIntegration.listeningHistory.fileInProcess = await FileStream.createFromBlob(f![0]!, { owner: integrations._owner })
                                                 }}
                                             >
                                                 <Button 
                                                     kind="secondary" 
                                                     size="md">
-                                                    Upload <span className="font-mono">spotify-history.json</span> file
+                                                    Upload <span className="font-mono">my_spotify_data.zip</span> file
                                                 </Button>
                                             </FileTrigger>
 

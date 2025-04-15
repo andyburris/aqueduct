@@ -16,6 +16,7 @@ export class GooglePhotoTimelineItem extends TimelineItem {
             GooglePhotoTimelineItem.SOURCE,
             GooglePhotoTimelineItem.TYPE,
             metadata.title,
+            metadata.url,
         )
     }
 }

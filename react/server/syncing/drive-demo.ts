@@ -3,7 +3,7 @@ import { GoogleIntegration } from "../../jazz/schema/integrations/google-integra
 
 const syncInfo: GoogleDriveFileOptions = {
     pageSize: 50,
-    fields: "files(id, name, modifiedTime, createdTime, mimeType)",
+    fields: "files(id, name, modifiedTime, createdTime, mimeType, webViewLink, webContentLink)",
     q: "trashed=false",
 }
 

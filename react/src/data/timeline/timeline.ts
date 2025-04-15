@@ -5,6 +5,7 @@ export class TimelineItem {
         public source: string,
         public type: string,
         public description: string,
+        public url?: string,
     ) {}
 }
 
