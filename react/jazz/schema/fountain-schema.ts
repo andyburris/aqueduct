@@ -4,7 +4,7 @@
  */
 
 import { Account, CoMap, Group, Profile, co } from "jazz-tools";
-import { ListeningHistory, ListensList, PlaylistList, SpotifyIntegration } from "./integrations/spotify-integration";
+import { ListeningHistory, ListensList, PlaylistList, Playlists, SpotifyIntegration } from "./integrations/spotify-integration";
 import { EventList, MOCK_TEST_EVENTS, TestIntegration } from "./integrations/test-integration";
 import { FileList, GoogleAuthentication, GoogleIntegration, LocationHistory, LocationHistoryList } from "./integrations/google-integration";
 
@@ -51,7 +51,9 @@ export class FountainUserAccount extends Account {
       this.root = FountainRoot.create({
         integrations: FountainIntegrations.create({
           spotifyIntegration: SpotifyIntegration.create({ 
-            playlists: PlaylistList.create([], group),
+            playlists: Playlists.create({
+              items: PlaylistList.create([], group)
+            }, group),
             listeningHistory: ListeningHistory.create({
               listens: ListensList.create([], group)
             }, group),

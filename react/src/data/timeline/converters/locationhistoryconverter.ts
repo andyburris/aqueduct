@@ -2,8 +2,8 @@ import { TimelineDurationItem } from "../timeline";
 import { GoogleLocationHistoryItem } from "aqueduct";
 
 export class LocationHistoryTimelineItem extends TimelineDurationItem {
-    static SOURCE = "Google Maps"
-    static TYPE = "locationhistory"
+    static SOURCE = "google-maps"
+    static TYPE = "location-history"
     static COLOR = "#CEE7FE"
     
     constructor(

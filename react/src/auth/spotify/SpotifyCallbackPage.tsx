@@ -16,7 +16,7 @@ export function SpotifyCallbackPage() {
         SpotifyApi.performUserAuthorization(
             "b10a0181d9ac49b28846cbd7413193e1", 
             `${localAddress}/auth/spotify`,
-            ["playlist-read-private"],
+            ["playlist-read-private", "user-read-recently-played", "user-read-currently-playing"],
             async (token) => {
                 console.log("Got Spotify token: ", token)
                 me.root.integrations.spotifyIntegration.applyDiff({ authentication: token })

@@ -162,12 +162,12 @@ export class Stream<T> {
      * Creates a stream that emits on an interval and resets the timer when the source emits.
      * Only calls onSync when a value is actually emitted.
      * @param interval Interval in milliseconds
-     * @param lastSyncedAt Last sync timestamp
+     * @param lastRunAt Last sync timestamp
      * @param onSync Callback for sync events
      */
     every(
         interval: number,
-        lastSyncedAt?: number,
+        lastRunAt?: number,
         onSync?: (syncedAt: number) => void,
         skipInitial?: boolean,
     ): Stream<T> {

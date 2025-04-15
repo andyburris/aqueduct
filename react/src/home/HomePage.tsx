@@ -8,7 +8,7 @@ import { Virtuoso } from "react-virtuoso";
 import { Link } from "../common/Components";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
-import { SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotifyconverter";
+import { SpotifyListenTimelineItem, SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotifyconverter";
 import { TestTimelineItem } from "../data/timeline/converters/testconverter";
 import { Duration, TimelineDurationItem, TimelineItem } from "../data/timeline/timeline";
 import { OnboardingPage } from "../onboarding/OnboardingPage";
@@ -39,7 +39,7 @@ function Timeline() {
     const [scrollPosition, setScrollPosition] = useState({ startIndex: 0, endIndex: 0 })
     const { me } = useAccount({ resolve: { root: {
         integrations: {
-            spotifyIntegration: { playlists: true, listeningHistory: { listens: true } },
+            spotifyIntegration: { playlists: { items: true }, listeningHistory: { listens: true } },
             // googleIntegration: { files: true },
             googleIntegration: { files: true, locations: { items: true } },
             testIntegration: { events: { $each: true} }
@@ -47,8 +47,10 @@ function Timeline() {
     } }})
     if (!me) return <p className="mt-16">Loading...</p>
     // return <p className="mt-16">Loaded</p>
-    const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations.spotifyIntegration.playlists
+    const spotifyTimelineItems: SpotifyPlaylistTimelineItem[] = me.root.integrations.spotifyIntegration.playlists.items
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
+    const spotifyListenItems = me.root.integrations.spotifyIntegration.listeningHistory.listens
+        .map(listen => new SpotifyListenTimelineItem(listen))
     const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files
         ?.map(file => new TimelineItem(
             file.id ?? "",
@@ -59,14 +61,15 @@ function Timeline() {
         ))
     const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
         .map(l => new LocationHistoryTimelineItem(l))
-    const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
-        .map(n => new TestTimelineItem(n))
+    // const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
+    //     .map(n => new TestTimelineItem(n))
     
     const allTimelineItems = [
         ...spotifyTimelineItems,
+        ...spotifyListenItems,
         ...googleDriveTimelineItems,
         ...locationHistoryTimelineItems,
-        ...testTimelineItems,
+        // ...testTimelineItems,
     ]
     const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
     const withDays = insertDays(sortedTimelineItems)

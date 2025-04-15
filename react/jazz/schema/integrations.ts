@@ -1,6 +1,9 @@
 import { co, CoMap } from "jazz-tools";
 
 export class Integration extends CoMap {
-    lastSyncedAt = co.optional.Date;
-    lastTriedSyncedAt = co.optional.Date;
+}
+
+export class SyncFlow extends CoMap {
+    lastSyncStarted = co.optional.Date;
+    lastSyncFinished = co.optional.Date;
 }

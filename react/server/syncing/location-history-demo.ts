@@ -1,15 +1,15 @@
-import { GoogleTakeoutExtension, NewGoogleLocationHistoryItem, Stream } from "aqueduct";
+import { GoogleLocationHistoryExtension, RawGoogleLocationHistoryItem, Stream } from "aqueduct";
 import { GoogleIntegration } from "../../jazz/schema/integrations/google-integration";
 
 export async function syncLocations(data: GoogleIntegration) {
     console.log("Syncing Google Location History...")
 
     if(!process.env.GOOGLE_MAPS_API_KEY) throw new Error("GOOGLE_MAPS_API_KEY not set")
-    const takeout = new GoogleTakeoutExtension()
+    const takeout = new GoogleLocationHistoryExtension()
 
     const loadedData = await data.ensureLoaded({ resolve: { authentication: {}, locations: { items: true, } }})
     const file = Stream
-        .fromListener<NewGoogleLocationHistoryItem[]>(emit => loadedData.locations.subscribe({}, (loc) => { if(loc.fileInProcess) emit(loc.fileInProcess) }))
+        .fromListener<RawGoogleLocationHistoryItem[]>(emit => loadedData.locations.subscribe({}, (loc) => { if(loc.fileInProcess) emit(loc.fileInProcess) }))
         .dropRepeats()
 
     file
@@ -21,6 +21,7 @@ export async function syncLocations(data: GoogleIntegration) {
         }, 1)
         .listen(locations => {
             loadedData.locations.items.applyDiff(locations)
+            loadedData.locations.lastSyncFinished = new Date()
             loadedData.locations.fileInProcess = undefined
         })
 }

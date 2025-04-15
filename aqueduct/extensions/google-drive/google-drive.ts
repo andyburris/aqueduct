@@ -1,5 +1,5 @@
 import * as google from "googleapis"
-import { Change, SyncResult, SyncResultChanges } from "../utils"
+import { Change, SyncResult, SyncResultChanges } from "../../utils"
 
 export type GoogleCredentials = google.Auth.Credentials
 export type GoogleDriveFileOptions = google.drive_v3.Params$Resource$Files$List

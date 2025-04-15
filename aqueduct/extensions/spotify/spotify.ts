@@ -1,5 +1,5 @@
-import { AccessToken, Page, PlaylistedTrack, SimplifiedPlaylist, SimplifiedTrack, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
-import { Change, diffObject, generateUUID, processOnlyChangedItems, SyncResult, SyncResultChanges } from "../../utils";
+import { AccessToken, Page, PlaylistedTrack, SimplifiedPlaylist, SimplifiedTrack, SpotifyApi, Track, MaxInt } from "@spotify/web-api-ts-sdk";
+import { Change, diffObject, fetchWindowed, generateUUID, fetchDiff, SyncResult, SyncResultChanges } from "../../utils";
 import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
 import { unzip } from "unzipit";
 
@@ -58,22 +58,33 @@ export class SpotifyExtension {
     public listens = {
         getCurrent: async (authToken: AccessToken, previous?: SpotifyListen[]) => {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
-            return await processOnlyChangedItems({
-                currentItems: [await api.player.getCurrentlyPlayingTrack()].filter(current => "album" in current.item), //TODO: add podcast support
+            const current = await api.player.getCurrentlyPlayingTrack()
+            console.log(`got current`)
+            return await fetchDiff({
+                currentItems: [current].filter(current => "album" in current.item), //TODO: add podcast support
                 savedItems: previous ?? [],
                 currentSignature: current => new Date(current.timestamp).toISOString() + "|" + current.item.uri,
                 savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
-                convert: current => current.map(i => currentlyPlayingToSpotifyListen(i)),
+                convert: { each: current => currentlyPlayingToSpotifyListen(current) }
             })
         },
-        getRecents: async (authToken: AccessToken, previous?: SpotifyListen[]) => {
+        getRecents: async (authToken: AccessToken, previous?: SpotifyListen[], limit: MaxInt<50> = 50) => {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
-            return await processOnlyChangedItems({
-                currentItems: (await api.player.getRecentlyPlayedTracks()).items,
+            const items = (await api.player.getRecentlyPlayedTracks(limit).catch(err => console.error("error getting recents", err)))?.items ?? []
+            items.sort((a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime())
+            // console.log(`got ${items.length} recents, most recently played at ${new Date(items[items.length - 1]?.played_at).toLocaleTimeString()}`)
+            // for some reason, each item gets the next one's played out time
+            // so, we drop the first item, and get the last played time from the last item
+            return await fetchDiff({
+                currentItems: items.slice(1),
                 savedItems: previous ?? [],
-                currentSignature: ph => new Date(ph.played_at).toISOString() + "|" + ph.track.uri,
+                currentSignature: ph => new Date(items[items.indexOf(ph) - 1].played_at).toISOString() + "|" + ph.track.uri,
                 savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
-                convert: current => current.map(i => playHistoryToSpotifyListen(i)),
+                convert: { all: (currents, _, signatures) => {
+                    // console.log(`converting ${currents.length} recents: \n`, currents.map((c, i) => `${c.track.name} | ${new Date(signatures[i].split("|")[0]).toTimeString()} | ${new Date(items[i].played_at).toTimeString()}`).join(",\n"))
+                    return currents
+                        .map((current, index) => playHistoryToSpotifyListen(current, items[items.indexOf(current) - 1].played_at))
+                } },
             })
         },
         unzipExportFile: async (file: File) => {
@@ -93,20 +104,37 @@ export class SpotifyExtension {
         },
         parseExportData: async (authToken: AccessToken | null, exported: ExportedSpotifyListen[], previous?: SpotifyListen[]) => {
             const api = authToken ? SpotifyApi.withAccessToken(this.credentials.clientID, authToken) : null
+            console.log(`parsing export data with ${previous?.length} previous listens, api: ${!!api}`)
 
-            return processOnlyChangedItems({
+            return fetchDiff({
                 currentItems: exported,
                 savedItems: previous ?? [],
                 currentSignature: (raw) => new Date(raw.ts).toISOString() + "|" + raw.spotify_track_uri,
                 savedSignature: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
                 createCache: (savedItems) => new Map(savedItems.filter(l => "album" in l.track).map(l => [l.uri, l.track as Track])),
-                convert: async (raws, cache) => {
-                    const uncachedIDs = new Set(raws.filter(raw => !cache.has(raw.spotify_track_uri!)).map(raw => raw.spotify_track_uri!.replace("spotify:track:", "")))
-                    const uncachedTracks = api
-                        ? await api.tracks.get(Array.from(uncachedIDs))
-                        : []
-                    uncachedTracks.forEach(t => cache.set(t.uri, t))
-                    return raws.map(raw => rawToSpotifyListen(raw, cache.get(raw.spotify_track_uri!))).filter(l => !!l) as SpotifyListen[]
+                convert: {
+                    all: async (raws, cache) => {
+                        console.log("running convert")
+                        const rawSongs = raws.filter(raw => !!raw.spotify_track_uri)
+                        const uncachedIDs = new Set(rawSongs.filter(raw => !cache.has(raw.spotify_track_uri!)).map(raw => raw.spotify_track_uri!.replace("spotify:track:", "")))
+                        console.log(`Getting ${uncachedIDs.size} tracks for ${rawSongs.length} new listens`)
+                        const uncachedTracks = api
+                            ? await 
+                                fetchWindowed({
+                                    items: Array.from(uncachedIDs),
+                                    windowSize: 50,
+                                    fetch: (ids) => api.tracks.get(ids),
+                                    parallel: false,
+                                    onProgress: (progress => {
+                                        console.log(`Fetched ${progress * 50} of ${uncachedIDs.size} tracks`)
+                                    })
+                                }) 
+                                .then(tracks => { console.log(`got ${tracks.length} tracks`); return tracks })
+                                .catch(err => console.error(`error getting ${uncachedIDs.size} tracks from spotify: `, err))
+                            : []
+                        uncachedTracks?.forEach(t => cache.set(t.uri, t))
+                        return rawSongs.map(raw => rawToSpotifyListen(raw, cache.get(raw.spotify_track_uri!))).filter(l => !!l) as SpotifyListen[]
+                    }
                 }
             })
         },

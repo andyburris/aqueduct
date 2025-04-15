@@ -44,8 +44,8 @@ export async function syncDrive(data: GoogleIntegration) {
     const files = token
         .every(
             seconds(15), 
-            data.lastTriedSyncedAt?.getTime(), 
-            syncedAt => data.lastTriedSyncedAt = new Date(syncedAt)
+            // data.lastTriedSyncedAt?.getTime(), 
+            // syncedAt => data.lastTriedSyncedAt = new Date(syncedAt)
         )
         .map(async token => {
             const previousFiles = (await data.ensureLoaded({ resolve: { files: true }})).files
@@ -58,7 +58,7 @@ export async function syncDrive(data: GoogleIntegration) {
         .listen(async files => {
             const loaded = await data.ensureLoaded({ resolve: { files: true }})
             loaded.files.applyDiff(files.data)
-            data.lastSyncedAt = new Date()
+            // data.lastSyncedAt = new Date()
         })
 }
 

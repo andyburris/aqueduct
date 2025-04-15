@@ -70,9 +70,9 @@ export function rawToSpotifyListen(raw: ExportedSpotifyListen, track: Track | nu
     }
 }
 
-export function playHistoryToSpotifyListen(ph: PlayHistory): SpotifyListen {
+export function playHistoryToSpotifyListen(ph: PlayHistory, timestamp: string = ph.played_at): SpotifyListen {
     return {
-        timestamp: new Date(ph.played_at).getTime(),
+        timestamp: new Date(timestamp).getTime(),
         playInfo: undefined,
         track: ph.track,
         uri: ph.track.uri,

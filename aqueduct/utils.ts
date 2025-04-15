@@ -66,25 +66,32 @@ function manualUUID() {
     });
 }
 
-export interface ProcessOnlyChangedItemsOptions<Current, Saved, Cache = Map<string, Saved>> {
+export interface FetchDiffOptions<Current, Saved, Cache = Map<string, Saved>, Signature = string> {
     currentItems: Current[],
     savedItems: Saved[],
-    currentSignature: (currentItem: Current) => string,
-    savedSignature: (savedItem: Saved) => string,
-    convert: (currentItems: Current[], cache: Cache) => Saved[] | Promise<Saved[]>,
-
+    currentSignature: (currentItem: Current) => Signature,
+    savedSignature: (savedItem: Saved) => Signature,
+    convert: FetchDiffConvert<Current, Saved, Cache, Signature>,
     createCache?: (savedItems: Saved[]) => Cache,
     // refreshCached?: undefined
 }
 
-export interface ProcessOnlyChangedItemsOutput<Saved> {
+export type FetchDiffConvert<Current, Saved, Cache, Signature> = FetchDiffConvertAll<Current, Saved, Cache, Signature> | FetchDiffConvertEach<Current, Saved, Cache, Signature>
+export interface FetchDiffConvertAll<Current, Saved, Cache, Signature> {
+    all: (currentItems: Current[], cache: Cache, signatures: Signature[]) => Saved[] | Promise<Saved[]>,
+}
+export interface FetchDiffConvertEach<Current, Saved, Cache, Signature> {
+    each: (currentItem: Current, cache: Cache, signature: Signature) => Saved | Promise<Saved>,
+}
+
+export interface FetchDiffOutput<Saved> {
     allItems: Saved[],
     newItems: Saved[],
     // updatedItems: { item: Saved, changes: Change[] }[],
     currentButUnchangedItems: Saved[],
 }
 
-export async function processOnlyChangedItems<Current, Saved, Cache = Map<string, Saved>>(options: ProcessOnlyChangedItemsOptions<Current, Saved, Cache>): Promise<ProcessOnlyChangedItemsOutput<Saved>> {
+export async function fetchDiff<Current, Saved, Cache = Map<string, Saved>, Signature = string>(options: FetchDiffOptions<Current, Saved, Cache, Signature>): Promise<FetchDiffOutput<Saved>> {
     const { currentItems, savedItems, currentSignature, savedSignature, convert, createCache } = options
     
     const savedSignatures = new Map(savedItems.map(si => [savedSignature(si), si]))
@@ -99,12 +106,58 @@ export async function processOnlyChangedItems<Current, Saved, Cache = Map<string
     }, [[], []])
 
     const cache: Cache = createCache ? createCache(savedItems) : savedSignature as Cache
+    const processedItems: Saved[] = ("each" in convert)
+        ? await Promise.all(newItems.map(item => {
+            const ps: Promise<Saved> = Promise.resolve(convert.each(item, cache, currentSignature(item))) //TODO: error handling
+            return ps
+        }))
+        : await Promise.resolve(convert.all(newItems, cache, newItems.map(i => currentSignature(i)))).catch(err => console.error("Error converting items", err)) ?? []   
 
-    const processedItems: Saved[] = await convert(newItems, cache)
     return {
         allItems: [...savedItems, ...processedItems],
         newItems: processedItems,
         currentButUnchangedItems: unchangedItems,
     }
+}
+
+export interface FetchWindowedOptions<In, Out> {
+    items: In[],
+    windowSize: number,
+    fetch: (items: In[]) => Promise<Out[]>,
+    // parallel?: number | null, TODO: use p-limit or in-house to parallelize
+    parallel?: boolean,
+    onProgress?: (progress: number) => void,
+}
+
+export async function fetchWindowed<In, Out>(options: FetchWindowedOptions<In, Out>): Promise<Out[]> {
+    const { items, windowSize, fetch, parallel = false, onProgress } = options
+
+    const windowed = items.reduce<In[][]>((acc, item, index) => {
+        const windowIndex = Math.floor(index / windowSize)
+        if (!acc[windowIndex]) {
+            acc[windowIndex] = []
+        }
+        acc[windowIndex].push(item)
+        return acc
+    }, [])
+
+    if(parallel) {
+        let numberFetched = 0
+        const results = await Promise.all(windowed.map(w => fetch(w).then(res => {
+            if(onProgress) onProgress(numberFetched)
+            numberFetched += 1
+            return res
+        })))
+        return results.flat()
+    } else {
+        const results: Out[] = []
+        for(let i = 0; i < windowed.length; i++) {
+            const result = await fetch(windowed[i])
+            results.push(...result)
+            if(onProgress) onProgress(i)
+        }
+        return results
+    }
+
 
 }

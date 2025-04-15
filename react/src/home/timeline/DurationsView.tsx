@@ -66,7 +66,7 @@ function Durations({ durationInfos }: { durationInfos: DurationInfo[] }) {
                         { outgoing && 
                             <div className="flex mt-[17px] -ml-[3px]">
                                 <TopLeftConnector color={outgoing.color} />
-                                <div className="h-0.5 mt-0.5" style={{ width: (5 * (durationInfos.length - index - 1)) + 3, backgroundColor: outgoing.color }}/>
+                                <div className="h-0.5 mt-0.5" style={{ width: (6 * (durationInfos.length - index - 1)) + 2, backgroundColor: outgoing.color }}/>
                                 <RightConnector color={outgoing.color} />
                             </div>
                         }

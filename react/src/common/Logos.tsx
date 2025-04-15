@@ -1,4 +1,25 @@
-export const SpotifyLogo = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" className={className}>
+import { MapPin } from "@phosphor-icons/react"
+
+export function LogoForSource({ source, type, className }: { source: string, type?: string, className?: string }) {
+    return source === "google-drive" ? <GoogleDriveLogo className={className}/>
+        : source === "spotify" ? <SpotifyLogo className={className}/>
+        : (source === "google-maps" && type === "location-history") ? <IconLogo className={`bg-blue-100 text-blue-900 ${className}`} icon={<MapPin/>} />
+        : source === "google-maps" ? <GoogleMapsLogo className={className}/>
+        : <div className={`bg-neutral-100 flex items-center justify-center text-neutral-500 ${className}`}>{source[0].toLocaleUpperCase()}</div>
+}
+
+function IconLogo({ icon, className }: { icon: React.ReactNode, className?: string }) {
+    return (
+        <div className={`flex items-center justify-center ${className}`}>
+            {icon}
+        </div>
+    )
+}
+
+
+/********** LOGOS **********/
+
+const SpotifyLogo = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" className={className}>
     <g clipPath="url(#a)">
     <path d="M0 0h18v18H0V0Z"/>
     <path fill="#65D46E" d="M9 4a5 5 0 1 0 0 10A5 5 0 0 0 9 4Zm2.293 7.211a.311.311 0 0 1-.429.104c-1.174-.717-2.652-.88-4.392-.482a.313.313 0 0 1-.139-.608c1.905-.435 3.539-.248 4.857.558.146.09.193.282.103.428Zm.612-1.361a.39.39 0 0 1-.536.129c-1.344-.827-3.393-1.066-4.983-.583a.39.39 0 0 1-.226-.746c1.816-.551 4.073-.284 5.617.664a.39.39 0 0 1 .128.536Zm.053-1.418c-1.612-.957-4.27-1.045-5.81-.578a.468.468 0 1 1-.27-.895c1.765-.536 4.701-.432 6.557.669a.468.468 0 1 1-.477.804Z"/>
@@ -10,7 +31,7 @@ export const SpotifyLogo = ({ className }: { className?: string }) => <svg xmlns
     </defs>
 </svg>
 
-export const GoogleDriveLogo = ({ className }: { className?: string }) => <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+const GoogleDriveLogo = ({ className }: { className?: string }) => <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
 <rect width="32" height="32" fill="white"/>
 <g clipPath="url(#clip0_1748_3651)">
 <path d="M5.77692 22.9981L6.81346 24.7885C7.02885 25.1654 7.33846 25.4616 7.70192 25.677L11.4038 19.2693H4C4 19.6866 4.10769 20.1039 4.32308 20.4808L5.77692 22.9981Z" fill="#0066DA"/>
@@ -27,9 +48,18 @@ export const GoogleDriveLogo = ({ className }: { className?: string }) => <svg w
 </defs>
 </svg>
 
-
-export function LogoForSource({ source, className }: { source: string, className?: string }) {
-    return source === "google-drive" ? <GoogleDriveLogo className={className}/>
-        : source === "spotify" ? <SpotifyLogo className={className}/>
-        : <div className={`bg-neutral-100 flex items-center justify-center text-neutral-500 ${className}`}>{source[0].toLocaleUpperCase()}</div>
-}
+const GoogleMapsLogo = ({ className }: { className?: string }) => <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+<rect width="32" height="32" fill="white"/>
+<g clipPath="url(#clip0_1299_1278)">
+<path d="M18.4333 5.36584C17.7183 5.13303 16.9382 5 16.1419 5C13.8504 5 11.7865 6.06425 10.4052 7.74376L13.9479 10.7868L18.4333 5.36584Z" fill="#1A73E8"/>
+<path d="M10.4052 7.74377C9.31633 9.07408 8.65002 10.8035 8.65002 12.6659C8.65002 14.1126 8.9263 15.2767 9.39759 16.3243L13.948 10.7869L10.4052 7.74377Z" fill="#EA4335"/>
+<path d="M16.1582 9.73924C17.7508 9.73924 19.0347 11.0529 19.0347 12.6825C19.0347 13.3976 18.7747 14.0627 18.3521 14.5782C18.3521 14.5782 20.6111 11.8178 22.8212 9.1406C21.9112 7.34468 20.3348 5.98111 18.4334 5.36584L13.948 10.7869C14.4843 10.155 15.2644 9.73924 16.1582 9.73924Z" fill="#4285F4"/>
+<path d="M16.1581 15.6092C14.5655 15.6092 13.2817 14.2956 13.2817 12.6659C13.2817 11.9509 13.5254 11.2857 13.948 10.7869L9.39758 16.3243C10.1776 18.0869 11.4778 19.517 12.8104 21.2963L18.3521 14.5616C17.8158 15.2101 17.0357 15.6092 16.1581 15.6092Z" fill="#FBBC04"/>
+<path d="M18.2546 23.1588C20.7573 19.1512 23.6663 17.3387 23.6663 12.6826C23.6663 11.4022 23.3576 10.2049 22.8213 9.14062L12.8104 21.2963C13.233 21.8617 13.6717 22.5102 14.0943 23.1754C15.6219 25.5866 15.1994 27.0167 16.1745 27.0167C17.1495 27.0167 16.727 25.57 18.2546 23.1588Z" fill="#34A853"/>
+</g>
+<defs>
+<clipPath id="clip0_1299_1278">
+<rect width="15" height="22" fill="white" transform="translate(8.65002 5)"/>
+</clipPath>
+</defs>
+</svg>
