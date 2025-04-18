@@ -1,1 +1,1 @@
-A demo application for the Skybridge sync protocol
+The Aqueduct sync protocol
