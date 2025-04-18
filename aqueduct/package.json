@@ -1,0 +1,16 @@
+{
+  "name": "aqueduct",
+  "main": "index.ts",
+  "types": "index.ts",
+  "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "googleapis": "^144.0.0",
+    "unzipit": "^1.4.3",
+    "xstream": "^11.14.0"
+  },
+  "browser": {
+    "googleapis": false,
+    "@google-cloud/local-auth": false
+  }
+}

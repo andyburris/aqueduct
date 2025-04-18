@@ -1,0 +1,47 @@
+{
+  "name": "react",
+  "private": true,
+  "version": "0.0.63",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "format-and-lint": "biome check .",
+    "format-and-lint:fix": "biome check . --write"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "@types/heic-convert": "^2.1.0",
+    "aqueduct": "link:aqueduct",
+    "heic-convert": "^2.1.0",
+    "jazz-inspector": "^0.13.4",
+    "jazz-nodejs": "^0.13.4",
+    "jazz-react": "^0.13.4",
+    "jazz-tools": "^0.13.4",
+    "react": "^18.3.1",
+    "react-aria-components": "^1.7.1",
+    "react-dom": "^18.3.1",
+    "react-router": "^7.4.1",
+    "react-virtuoso": "^4.12.6",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@playwright/test": "^1.50.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "globals": "^15.11.0",
+    "is-ci": "^3.0.1",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.11",
+    "@types/node": "^22.13.14"
+  }
+}
