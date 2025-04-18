@@ -1,5 +1,5 @@
 import { places_v1 } from "googleapis";
-import { fetchDiff } from "../../utils";
+import { fetchDiff } from "../../fetch";
 
 export interface LatLong { latitude: number, longitude: number }
 function stringToLatLong(s: string): LatLong { 
@@ -52,10 +52,10 @@ export class GoogleLocationHistoryExtension {
         const visitsAndActivities = json.filter(i => "visit" in i || "activity" in i)
         const results = await fetchDiff({
             currentItems: visitsAndActivities,
-            savedItems: previousLocationHistory,
+            storedItems: previousLocationHistory,
             currentIdentifier: (raw) => raw.startTime + "|" + raw.endTime + "|" + (isRawVisit(raw) ? raw.visit.topCandidate.placeLocation : raw.activity.start),
-            savedIdentifier: l => l.startTimestamp + "|" + l.endTimestamp + "|" + ("visit" in l ? l.visit.topCandidate.placeLocation : (l.activity.start.latitude + "," + l.activity.start.longitude)),
-            createCache: (savedItems) => new Map(savedItems.filter(l => "visit" in l).map(l => [l.visit.topCandidate.placeID, { name: l.visit.topCandidate.placeInfo.name, address: l.visit.topCandidate.placeInfo.address }])),
+            storedIdentifier: l => l.startTimestamp + "|" + l.endTimestamp + "|" + ("visit" in l ? l.visit.topCandidate.placeLocation : (l.activity.start.latitude + "," + l.activity.start.longitude)),
+            createCache: (storedItems) => new Map(storedItems.filter(l => "visit" in l).map(l => [l.visit.topCandidate.placeID, { name: l.visit.topCandidate.placeInfo.name, address: l.visit.topCandidate.placeInfo.address }])),
             keepStaleItems: true,
             convert: {
                 each: async (rawItem, placeInfoCache) => {

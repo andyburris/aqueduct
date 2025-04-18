@@ -1,6 +1,6 @@
 import { AccessToken, MaxInt, Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
 import { unzip } from "unzipit";
-import { fetchDiff, fetchWindowed } from "../../utils";
+import { fetchDiff, fetchWindowed } from "../../fetch";
 import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
 
 export interface FullSpotifyPlaylist extends SimplifiedPlaylist {
@@ -20,11 +20,11 @@ export class SpotifyExtension {
 
             return await fetchDiff({
                 currentItems: playlists,
-                savedItems: previous ?? [],
+                storedItems: previous ?? [],
                 currentIdentifier: p => p.id,
-                savedIdentifier: p => p.id,
+                storedIdentifier: p => p.id,
                 currentSignature: p => p.id + "|" + p.snapshot_id,
-                savedSignature: p => p.id + "|" + p.snapshot_id,
+                storedSignature: p => p.id + "|" + p.snapshot_id,
                 keepStaleItems: false,
                 convert: {
                     all: async (changed) => {
@@ -52,9 +52,9 @@ export class SpotifyExtension {
             console.log(`got current`)
             return await fetchDiff({
                 currentItems: [current].filter(current => "album" in current.item), //TODO: add podcast support
-                savedItems: previous ?? [],
+                storedItems: previous ?? [],
                 currentIdentifier: current => new Date(current.timestamp).toISOString() + "|" + current.item.uri,
-                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                storedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
                 keepStaleItems: true,
                 convert: { each: current => currentlyPlayingToSpotifyListen(current) }
             })
@@ -68,9 +68,9 @@ export class SpotifyExtension {
             // so, we drop the first item, and get the last played time from the last item
             return await fetchDiff({
                 currentItems: items.slice(1),
-                savedItems: previous ?? [],
+                storedItems: previous ?? [],
                 currentIdentifier: ph => new Date(items[items.indexOf(ph) - 1].played_at).toISOString() + "|" + ph.track.uri,
-                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                storedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
                 keepStaleItems: true,
                 convert: { all: (currents) => {
                     // console.log(`converting ${currents.length} recents: \n`, currents.map((c, i) => `${c.track.name} | ${new Date(signatures[i].split("|")[0]).toTimeString()} | ${new Date(items[i].played_at).toTimeString()}`).join(",\n"))
@@ -100,11 +100,14 @@ export class SpotifyExtension {
 
             return fetchDiff({
                 currentItems: exported,
-                savedItems: previous ?? [],
+                storedItems: previous ?? [],
                 currentIdentifier: (raw) => new Date(raw.ts).toISOString() + "|" + raw.spotify_track_uri,
-                savedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
-                keepStaleItems: true, //TODO: remove stale items before latest timestamp
-                createCache: (savedItems) => new Map(savedItems.filter(l => "album" in l.track).map(l => [l.uri, l.track as Track])),
+                storedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                keepStaleItems: (staleItems, nonStaleItems) => {
+                    const latestNonStaleTimestamp = Math.max(...nonStaleItems.map(l => new Date(l.timestamp).getTime()))
+                    return staleItems.filter(l => new Date(l.timestamp).getTime() > latestNonStaleTimestamp)
+                },
+                createCache: (storedItems) => new Map(storedItems.filter(l => "album" in l.track).map(l => [l.uri, l.track as Track])),
                 convert: {
                     all: async (raws, cache) => {
                         console.log("running convert")

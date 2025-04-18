@@ -100,6 +100,7 @@ export function FlowStepItem(props: FlowTimelineItemProps) {
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'short' })
 export function SyncedAtFlowStepItem({ lastSyncStarted, lastSyncFinished, ...props }: { lastSyncStarted?: number, lastSyncFinished?: number } & Omit<FlowTimelineItemProps, "text" | "inProgress">) {
+    //TODO-LATER: consider adding number of items? or impractical
     const text = 
         (!lastSyncStarted && !lastSyncFinished) ? "Not synced yet"
         : (lastSyncFinished ?? 0) > (lastSyncStarted ?? 0) ? `Last synced at ${dateTimeFormatter.format(new Date(lastSyncFinished ?? 0))}`

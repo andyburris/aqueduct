@@ -1,5 +1,5 @@
 import * as google from "googleapis"
-import { fetchDiff, FetchDiffOutput } from "../../utils"
+import { fetchDiff, FetchDiffOutput } from "../../fetch"
 
 export type GoogleCredentials = google.Auth.Credentials
 export type GoogleDriveFileOptions = google.drive_v3.Params$Resource$Files$List
@@ -54,9 +54,9 @@ export class GoogleDriveExtension {
 
         return await fetchDiff({
             currentItems: files,
-            savedItems: previous ?? [],
+            storedItems: previous ?? [],
             currentIdentifier: (file) => file.id!,
-            savedIdentifier: (file) => file.id!,
+            storedIdentifier: (file) => file.id!,
             keepStaleItems: false,
             convert: { each: (file) => file },
         })
