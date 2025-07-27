@@ -1,5 +1,5 @@
 import * as google from "googleapis"
-import { fetchDiff, FetchDiffOutput } from "../../fetch"
+import { fetchDiff, FetchDiffOutput } from "../../core/fetch"
 
 export type GoogleCredentials = google.Auth.Credentials
 export type GoogleDriveFileOptions = google.drive_v3.Params$Resource$Files$List

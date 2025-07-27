@@ -1,0 +1,9 @@
+{
+  "name": "aqueduct/integrations/tana",
+  "main": "tana.ts",
+  "types": "tana.ts",
+  "dependencies": {
+    "aqueduct": "^0.1.0",
+    "zod": "^4.0.5"
+  }
+}

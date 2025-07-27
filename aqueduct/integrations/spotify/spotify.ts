@@ -1,6 +1,6 @@
 import { AccessToken, MaxInt, Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
 import { unzip } from "unzipit";
-import { fetchDiff, fetchWindowed } from "../../fetch";
+import { fetchDiff, fetchWindowed } from "../../core/fetch";
 import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
 
 export interface FullSpotifyPlaylist extends SimplifiedPlaylist {

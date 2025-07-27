@@ -1,0 +1,12 @@
+{
+  "name": "aqueduct/integrations/google-location-history",
+  "main": "google-location-history.ts",
+  "types": "google-location-history.ts",
+  "dependencies": {
+    "aqueduct": "^0.1.0",
+    "googleapis": "^144.0.0"
+  },
+  "browser": {
+    "googleapis": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "aqueduct/integrations/google-drive",
+  "main": "google-drive.ts",
+  "types": "google-drive.ts",
+  "dependencies": {
+    "aqueduct": "^0.1.0",
+    "googleapis": "^144.0.0"
+  },
+  "browser": {
+    "googleapis": false
+  }
+}

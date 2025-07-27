@@ -1,3 +1,4 @@
-export * from "./extensions/spotify"
 export * from "./stream"
+export * from "./fetch"
 export * from "./utils"
+

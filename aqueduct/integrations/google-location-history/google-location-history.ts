@@ -1,5 +1,5 @@
 import { places_v1 } from "googleapis";
-import { fetchDiff } from "../../fetch";
+import { fetchDiff } from "../../core/fetch";
 
 export interface LatLong { latitude: number, longitude: number }
 function stringToLatLong(s: string): LatLong { 

@@ -1,0 +1,8 @@
+{
+  "name": "aqueduct/integrations/google-photos",
+  "main": "google-photos.ts",
+  "types": "google-photos.ts",
+  "dependencies": {
+    "aqueduct": "^0.1.0"
+  }
+}

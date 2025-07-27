@@ -1,4 +1,4 @@
-### Using Aqueduct extensions
+# Using Aqueduct integrations
 First, add the extension for the apps you want to integrate with. If there isn't a publicly available extension for an app, it's easy to [make your own](). 
 ```typescript
 val storage = {} //in-memory storage for demo purposes
@@ -25,7 +25,7 @@ const spotifyAuthToken = Stream
     .or(spotifyCodeExchange, storedToken) 
     .onEach(token => storage["spotifyLoggedIn"] = token !== undefined)
 ```
-Many extensions will offer more concise, less customizable versions of these steps as flows
+Many integrations will offer more concise, less customizable versions of these steps as flows
 ```typescript
 const spotifyAuthToken = spotify.authFlow({
     code: spotifyCode,
@@ -77,3 +77,5 @@ Aqueduct's `Stream` is a wrapper around [xstream](https://github.com/staltz/xstr
 The API is quite simple, consisting of _ main operators:
 
 If you need more complex operators, you can drop down to an `xstream` using `.getBaseStream()` (reference for [xstream operators](https://github.com/staltz/xstream?tab=readme-ov-file#methods-and-operators)), and change it back using `.getAqueductStream()` (example here). Alternatively, you can create an extension method on `Stream.prototype` (example here).
+
+# Building Aqueduct integrations
