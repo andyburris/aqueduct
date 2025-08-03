@@ -1,15 +1,16 @@
 "use client"
 
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { useAccount } from "jazz-react";
+import { useAccount } from "jazz-tools/react";
 import { useEffect } from "react";
-import { localAddress } from "../localaddress";
 import { useNavigate } from "react-router";
+import { localAddress } from "../localaddress";
+import { FountainUserAccount } from "../../../jazz";
 
 
 export function SpotifyCallbackPage() {
     const navigate = useNavigate()
-    const { me } = useAccount({ resolve: { root: { integrations: { spotifyIntegration: {} }}}})
+    const { me } = useAccount(FountainUserAccount, { resolve: { root: { integrations: { spotifyIntegration: {} }}}})
     useEffect(() => {
         console.log("Spotify callback effect, account = ", me)
         if(!me) return

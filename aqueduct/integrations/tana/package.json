@@ -1,5 +1,5 @@
 {
-  "name": "aqueduct/integrations/tana",
+  "name": "integration-tana",
   "main": "tana.ts",
   "types": "tana.ts",
   "dependencies": {

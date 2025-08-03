@@ -1,14 +1,15 @@
 // app/oauth2callback/page.tsx
 'use client';
 
+import { useAccount } from 'jazz-tools/react';
 import { useEffect } from 'react';
-import { googleOauthStateKey } from './googleauth';
-import { useAccount } from 'jazz-react';
 import { useNavigate } from 'react-router';
+import { FountainUserAccount } from '../../../jazz';
+import { googleOauthStateKey } from './googleauth';
 
 export function GoogleCallbackPage() {
   const navigate = useNavigate()
-  const { me } = useAccount({ resolve: { root: { integrations: { googleIntegration: { authentication: {} }}}}})
+  const { me } = useAccount(FountainUserAccount, { resolve: { root: { integrations: { googleIntegration: { authentication: {} }}}}})
 
   useEffect(() => {
     if(!me) return

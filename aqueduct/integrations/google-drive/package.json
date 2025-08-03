@@ -1,5 +1,5 @@
 {
-  "name": "aqueduct/integrations/google-drive",
+  "name": "integration-google-drive",
   "main": "google-drive.ts",
   "types": "google-drive.ts",
   "dependencies": {

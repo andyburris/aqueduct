@@ -1,7 +1,10 @@
 import { co, Group, z } from "jazz-tools";
-import { ListeningHistory, ListensList, PlaylistList, Playlists, SpotifyIntegration } from "./integrations/spotify-integration";
+import { ListeningHistory, Playlists, SpotifyIntegration } from "./integrations/spotify-integration";
 import { EventList, MOCK_TEST_EVENTS, TestIntegration } from "./integrations/test-integration";
-import { DriveFiles, DriveFileList, GoogleAuthentication, GoogleIntegration, LocationHistory, LocationHistoryList, GooglePhotos, GooglePhotosList } from "./integrations/google-integration";
+import { FullSpotifyPlaylistSchema, SpotifyListenSchema } from "integration-spotify";
+import { TanaIntegration } from "./integrations/tana-integration";
+import { IsolatedTanaNodeSchema, TanaRootNodeSchema } from "integration-tana";
+// import { DriveFiles, DriveFileList, GoogleAuthentication, GoogleIntegration, LocationHistory, LocationHistoryList, GooglePhotos, GooglePhotosList } from "./integrations/google-integration";
 
 export const FountainProfile = co.profile({
   name: z.string()
@@ -13,8 +16,9 @@ export const FountainSync = co.map({
 
 export const FountainIntegrations = co.map({
   spotifyIntegration: SpotifyIntegration,
-  googleIntegration: GoogleIntegration,
-  testIntegration: TestIntegration
+  // googleIntegration: GoogleIntegration,
+  testIntegration: TestIntegration,
+  tanaIntegration: TanaIntegration,
 })
 
 export const FountainRoot = co.map({
@@ -28,34 +32,38 @@ export const FountainUserAccount = co.account({
 }).withMigration((account) => {
   // console.log("Migrating account", account.id, "root = ", this.root)
   if (account.root === undefined) {
-    const group = Group.create()
+    const userGroup = Group.create()
+    const workerGroup = Group.create()
     account.root = FountainRoot.create({
       integrations: FountainIntegrations.create({
         spotifyIntegration: SpotifyIntegration.create({ 
           playlists: Playlists.create({
-            items: PlaylistList.create([], group)
-          }, group),
+            items: co.list(FullSpotifyPlaylistSchema).create([], workerGroup)
+          }, workerGroup),
           listeningHistory: ListeningHistory.create({
-            listens: ListensList.create([], group)
-          }, group),
-        }, group),
-        googleIntegration: GoogleIntegration.create({ 
-          authentication: GoogleAuthentication.create({}, group),
-          files: DriveFiles.create({
-            items: DriveFileList.create([], group),
-          }, group),
-          locations: LocationHistory.create({
-            items: LocationHistoryList.create([], group),
-          }, group),
-          photos: GooglePhotos.create({
-            items: GooglePhotosList.create([], group),
-          }, group)
-        }, group),
+            listens: co.list(SpotifyListenSchema).create([], workerGroup),
+          }, workerGroup),
+        }, workerGroup),
+        // googleIntegration: GoogleIntegration.create({ 
+        //   authentication: GoogleAuthentication.create({}, workerGroup),
+        //   files: DriveFiles.create({
+        //     items: DriveFileList.create([], workerGroup),
+        //   }, workerGroup),
+        //   locations: LocationHistory.create({
+        //     items: LocationHistoryList.create([], workerGroup),
+        //   }, workerGroup),
+        //   photos: GooglePhotos.create({
+        //     items: GooglePhotosList.create([], workerGroup),
+        //   }, workerGroup)
+        // }, workerGroup),
         testIntegration: TestIntegration.create({
-          events: EventList.create(MOCK_TEST_EVENTS(), group),
-        }, group)
-      }, group),
+          events: EventList.create(MOCK_TEST_EVENTS(), workerGroup),
+        }, workerGroup),
+        tanaIntegration: TanaIntegration.create({
+          isolatedNodes: co.list(IsolatedTanaNodeSchema).create([], workerGroup)
+        }, workerGroup)
+      }, workerGroup),
       syncState: FountainSync.create({ syncing: false }, account)
-    }, account);
+    }, userGroup);
   }
 })

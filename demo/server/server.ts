@@ -1,9 +1,10 @@
-import { startWorker } from "jazz-nodejs";
-import { InboxMessage, RegisterClientMessage, WorkerAccount } from "../jazz";
+import { startWorker } from "jazz-tools/worker";
+import { FountainIntegrations, InboxMessage, RegisterClientMessage, WorkerAccount } from "../jazz";
 import { syncSpotify } from "./syncing/spotify-demo";
 import { syncDrive } from "./syncing/drive-demo";
 import { syncLocations } from "./syncing/location-history-demo";
 import { syncPhotos } from "./syncing/photos-demo";
+import { syncTana } from "./syncing/tana-demo";
 
 const localAddress = "ws://127.0.0.1:4200"
 
@@ -32,12 +33,14 @@ await workerAccount.root.integrations.subscribe(
       console.log("Syncing integrations for account", newA.id)
       const loadedIntegrations = await newA.ensureLoaded({ resolve: { 
         spotifyIntegration: {},
-        googleIntegration: {},
+        tanaIntegration: { isolatedNodes: { $each: true } },
+        // googleIntegration: {},
        }})
-      await syncSpotify(loadedIntegrations.spotifyIntegration)
-      await syncDrive(loadedIntegrations.googleIntegration)
-      await syncLocations(loadedIntegrations.googleIntegration)
-      syncPhotos(loadedIntegrations.googleIntegration)
+      // await syncSpotify(loadedIntegrations.spotifyIntegration)
+      // await syncDrive(loadedIntegrations.googleIntegration)
+      // await syncLocations(loadedIntegrations.googleIntegration)
+      // syncPhotos(loadedIntegrations.googleIntegration)
+      syncTana(loadedIntegrations.tanaIntegration)
 
       runningAccounts.set(newA.id, () => { 
         console.log("Unsubscribing for account", newA.id)
@@ -54,7 +57,7 @@ await workerAccount.root.integrations.subscribe(
 )
 
 inbox.subscribe(
-  InboxMessage,
+  RegisterClientMessage,
   async (message, senderID) => {
     // const userAccount = await FountainAccount.load(senderID, worker, {})
     // if (!userAccount) {
@@ -62,13 +65,13 @@ inbox.subscribe(
     //   return
     // }
     console.log("recieved message from", senderID, "message = ", message)
-    switch (message.type) {
+    const { type, integrations } = await message.ensureLoaded({ resolve: { integrations: { } } })
+    switch (type) {
       case "register":
-        const registerMessage: RegisterClientMessage = message.castAs(RegisterClientMessage);
-        workerAccount.root.integrations.push(registerMessage.integrations)
+        workerAccount.root.integrations.push(integrations)
         break
       default:
-        console.error(`Unknown inbox message type: ${message.type}`)
+        console.error(`Unknown inbox message type: ${type}`)
     }
   }
 )

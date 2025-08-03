@@ -1,8 +1,8 @@
 "use client"
 
-import { CaretRight, CodeSimple } from "@phosphor-icons/react";
-import { useAccount } from "jazz-react";
-import { useState } from "react";
+import { CodeSimple } from "@phosphor-icons/react";
+import { FileStream } from "jazz-tools";
+import { useAccount } from "jazz-tools/react";
 import { FileTrigger, Input, Label, TextField } from "react-aria-components";
 import { generateGoogleAuthURL } from "../auth/google/googleauth";
 import { redirectSpotifyAuth } from "../auth/spotify/spotifyauth";
@@ -10,14 +10,14 @@ import { Button, Link } from "../common/Components";
 import { Container } from "../common/Container";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
-import { LogoForSource } from "../common/Logos";
-import { FileStream } from "jazz-tools";
-import { IntegrationItem, FlowStepItem, SyncedAtFlowStepItem } from "./IntegrationItem";
+import { FlowStepItem, IntegrationItem, SyncedAtFlowStepItem } from "./IntegrationItem";
+import { FountainUserAccount, ProcessFile } from "../../jazz";
 
 export function IntegrationsPage() {
-    const { me } = useAccount({ resolve: { root: { integrations: {
+    const { me } = useAccount(FountainUserAccount, { resolve: { root: { integrations: {
         spotifyIntegration: { playlists: { items: true }, listeningHistory: { fileInProcess: true, listens: true } },
-        googleIntegration: { authentication: {}, locations: { items: true }, files: { items: true }, photos: { items: true } },
+        tanaIntegration: { isolatedNodes: { $each: true }, inProcess: true, },
+        // googleIntegration: { authentication: {}, locations: { items: true }, files: { items: true }, photos: { items: true } },
     } }}})
     if(!me) return <p>Loading...</p>
     const integrations = me.root.integrations
@@ -60,7 +60,7 @@ export function IntegrationsPage() {
                         isConnected: false,
                     }]}
                 />
-                <IntegrationItem
+                {/* <IntegrationItem
                     id="google-drive"
                     name="Google Drive"
                     flows={[{
@@ -192,7 +192,7 @@ export function IntegrationsPage() {
                             isConnected: integrations.googleIntegration.locations.items.length > 0 || integrations.googleIntegration.locations.fileInProcess !== undefined,
                         }
                     ]}
-                />
+                /> */}
                 <IntegrationItem
                     id="spotify"
                     name="Spotify"
@@ -289,6 +289,39 @@ export function IntegrationsPage() {
                         }
                     ]}
                 />
+                <IntegrationItem
+                    id="tana"
+                    name="Tana"
+                    flows={[{
+                        name: "Tana Export",
+                        isConnected: integrations.tanaIntegration.isolatedNodes.length > 0 || integrations.tanaIntegration.inProcess !== undefined,
+                        children: <div className="flex flex-col gap-4">
+                            <FileTrigger
+                                onSelect={async (files) => {
+                                    if(!files || files.length === 0) return
+                                    const file = files[0]
+                                    integrations.tanaIntegration.inProcess = ProcessFile.create({
+                                        lastUpdate: new Date(),
+                                        file: await FileStream.createFromBlob(file, integrations._owner),
+                                    }, integrations._owner)
+                                }}
+                            >
+                                <Button 
+                                    kind="secondary" 
+                                    size="lg">
+                                    Upload Tana Export
+                                </Button>
+                            </FileTrigger>
+                            <Button 
+                                kind="secondary" 
+                                size="lg"
+                                onPress={() => integrations.tanaIntegration.isolatedNodes.applyDiff([])}>
+                                Reset Tana nodes
+                            </Button>
+                        </div>,
+                    }]}
+                />
+
                 <IntegrationItem
                     id="notion"
                     name="Notion"

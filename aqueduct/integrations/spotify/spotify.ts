@@ -1,11 +1,9 @@
-import { AccessToken, MaxInt, Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
+import { AccessToken, MaxInt, Page, SpotifyApi, Track } from "@spotify/web-api-ts-sdk";
 import { unzip } from "unzipit";
+import { z } from "zod";
 import { fetchDiff, fetchWindowed } from "../../core/fetch";
 import { currentlyPlayingToSpotifyListen, ExportedSpotifyListen, playHistoryToSpotifyListen, rawToSpotifyListen, SpotifyListen } from "./spotify-listen";
-
-export interface FullSpotifyPlaylist extends SimplifiedPlaylist {
-    fullTracks: PlaylistedTrack<Track>[]
-}
+import { FullSpotifyPlaylist } from "./spotify-playlist";
 
 export class SpotifyExtension {
     constructor(
@@ -15,7 +13,9 @@ export class SpotifyExtension {
     public playlists = {
         getAll: async (authToken: AccessToken, previous?: FullSpotifyPlaylist[]) => {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
+            const currentUser = await api.currentUser.profile()
             const playlists = await getAllPages(api.currentUser.playlists.playlists(), offset => api.currentUser.playlists.playlists(50, offset))
+                .then(playlists => playlists.filter(p => p.owner.id === currentUser.id))
                 .then(playlists => playlists.slice(0, 5))
 
             return await fetchDiff({
@@ -50,11 +50,17 @@ export class SpotifyExtension {
             const api = SpotifyApi.withAccessToken(this.credentials.clientID, authToken); 
             const current = await api.player.getCurrentlyPlayingTrack()
             console.log(`got current`)
+            // Helper to round timestamp to nearest 10 seconds
+            function roundToNearest10Seconds(date: Date | string | number) {
+                const d = new Date(date);
+                return new Date(Math.round(d.getTime() / 10000) * 10000);
+            }
+
             return await fetchDiff({
                 currentItems: [current].filter(current => "album" in current.item), //TODO: add podcast support
                 storedItems: previous ?? [],
-                currentIdentifier: current => new Date(current.timestamp).toISOString() + "|" + current.item.uri,
-                storedIdentifier: l => new Date(l.timestamp).toISOString() + "|" + l.uri,
+                currentIdentifier: current => roundToNearest10Seconds(current.timestamp).toISOString() + "|" + current.item.uri,
+                storedIdentifier: l => roundToNearest10Seconds(l.timestamp).toISOString() + "|" + l.uri,
                 keepStaleItems: true,
                 convert: { each: current => currentlyPlayingToSpotifyListen(current) }
             })
@@ -156,4 +162,15 @@ async function getAllPages<T>(
       page.next = nextItems.next
     }
     return page.items
-  }
+}
+
+export const AccessTokenSchema = z.object({
+    access_token: z.string(),
+    token_type: z.string(),
+    expires_in: z.number(),
+    refresh_token: z.string(),
+    scope: z.string().optional(),
+});
+
+export * from "./spotify-listen";
+export * from "./spotify-playlist";

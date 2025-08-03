@@ -17,13 +17,15 @@
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "@types/heic-convert": "^2.1.0",
     "aqueduct": "link:aqueduct",
-    "aqueduct/extensions/spotify": "link:aqueduct/extensions/spotify",
-    "aqueduct/extensions/google-drive": "link:aqueduct/extensions/google-drive",
     "heic-convert": "^2.1.0",
-    "jazz-tools": "^0.15.1",
+    "integration-google-drive": "link:integration-google-drive",
+    "integration-spotify": "link:integration-spotify",
+    "integration-tana": "link:integration-tana",
+    "jazz-tools": "^0.16.3",
     "react": "^18.3.1",
     "react-aria-components": "^1.7.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
     "react-router": "^7.4.1",
     "react-virtuoso": "^4.12.6",
     "sharp": "^0.34.1"
@@ -31,6 +33,8 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@playwright/test": "^1.50.1",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^22.13.14",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
@@ -39,8 +43,7 @@
     "is-ci": "^3.0.1",
     "postcss": "^8.4.27",
     "tailwindcss": "^3.4.17",
-    "typescript": "~5.6.2",
-    "vite": "^6.0.11",
-    "@types/node": "^22.13.14"
+    "typescript": "^5.9.2",
+    "vite": "^6.0.11"
   }
 }

@@ -1,8 +1,30 @@
 import { AccessToken } from '@spotify/web-api-ts-sdk';
-import { SpotifyExtension, Stream, seconds } from 'aqueduct';
+import { Stream, seconds } from 'aqueduct/core';
+import { FullSpotifyPlaylist, FullSpotifyPlaylistSchema, SpotifyExtension  } from 'integration-spotify';
 import { SpotifyIntegration } from '../../jazz';
+import { co } from 'jazz-tools';
 
-export async function syncSpotify(data: SpotifyIntegration) {
+// Utility to flatten intersection types - removes & from displayed type
+type Prettify<T> = {
+  [K in keyof T]: T[K]
+} & {}
+
+// Recursive version that works with nested objects
+type FixUndefined<T> = Prettify<{
+  [K in keyof T as undefined extends T[K] ? K : never]?: T[K] extends object 
+    ? T[K] extends any[] 
+      ? T[K] 
+      : FixUndefined<T[K]>
+    : T[K]
+} & {
+  [K in keyof T as undefined extends T[K] ? never : K]: T[K] extends object
+    ? T[K] extends any[]
+      ? T[K]
+      : FixUndefined<T[K]>
+    : T[K]
+}>
+
+export async function syncSpotify(data: co.loaded<typeof SpotifyIntegration>) {
     const spotify = new SpotifyExtension({ 
       clientID: process.env.SPOTIFY_CLIENT_ID ?? "",
     });
@@ -26,7 +48,9 @@ export async function syncSpotify(data: SpotifyIntegration) {
         console.log(`getting playlists with ${previousPlaylists.length} previous playlists`)
         return spotify.playlists.getAll(token, previousPlaylists)
       }, 1)
-      .listen(playlists => loadedData.playlists.items.applyDiff(playlists.allItems));
+      .listen(playlists => {
+        loadedData.playlists.items.applyDiff(playlists.allItems)
+      });
 
     const listensRefresh = token
       .every(
@@ -77,10 +101,6 @@ export async function syncSpotify(data: SpotifyIntegration) {
       .listen(listens => {
         console.log(`Parsed export file with ${listens.allItems.length} listens`)
         loadedData.listeningHistory.listens.applyDiff(listens.allItems)
-        loadedData.listeningHistory.fileInProcess
+        loadedData.listeningHistory.fileInProcess = undefined;
       })
-}
-
-function isAccessToken(token: any): token is AccessToken {
-    return "access_token" in token && "token_type" in token && "expires_in" in token && "refresh_token" in token && "expires" in token;
 }

@@ -1,5 +1,5 @@
 {
-  "name": "aqueduct/integrations/google-location-history",
+  "name": "integration-google-location-history",
   "main": "google-location-history.ts",
   "types": "google-location-history.ts",
   "dependencies": {

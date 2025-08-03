@@ -3,10 +3,12 @@ export interface FetchDiffOptions<Current, Stored, Identifier = string, Signatur
     storedItems: Stored[],
     currentIdentifier: (currentItem: Current) => Identifier,
     storedIdentifier: (storedItem: Stored) => Identifier,
+    compareIdentifiers?: (currentIdentifier: Identifier, storedIdentifier: Identifier) => boolean,
     keepStaleItems: boolean | ((staleItems: Stored[], nonStaleItems: Stored[]) => Stored[]),
     convert: FetchDiffConvert<Current, Stored, Cache>,
     currentSignature?: (currentItem: Current) => Signature,
     storedSignature?: (storedItem: Stored) => Signature,
+    compareSignatures?: (currentSignature: Signature, storedSignature: Signature) => boolean,
     createCache?: (storedItems: Stored[]) => Cache,
     // refreshCached?: undefined
 }

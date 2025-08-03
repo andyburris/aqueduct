@@ -1,24 +1,32 @@
-import { AccessToken } from "@spotify/web-api-ts-sdk";
-import { FullSpotifyPlaylist } from "aqueduct/extensions/spotify";
+import { AccessTokenSchema, FullSpotifyPlaylistSchema, SpotifyListenSchema } from "integration-spotify";
 import { co, z } from "jazz-tools";
-import { cojson } from "../../test";
 import { Integration, SyncFlow } from "../integrations";
-import { SpotifyListen } from "aqueduct/extensions/spotify/spotify-listen";
 
-export const PlaylistList = co.list(cojson.json<SpotifyListen>())
-export const ListensList = co.list(cojson.json<SpotifyListen>())
 export const ListeningHistory = co.map({
-    ...SyncFlow,
-    listens: ListensList,
-    fileInProcess: co.fileStream(),
+    ...SyncFlow.shape,
+    listens: co.list(SpotifyListenSchema),
+    fileInProcess: co.fileStream().optional(),
 })
 export const Playlists = co.map({
-    ...SyncFlow,
-    items: PlaylistList,
+    ...SyncFlow.shape,
+    items: co.list(FullSpotifyPlaylistSchema),
 })
 export const SpotifyIntegration = co.map({
-    ...Integration,
-    authentication: cojson.json<AccessToken>().optional(),
+    ...Integration.shape,
+    authentication: AccessTokenSchema.optional(),
     playlists: Playlists,
     listeningHistory: ListeningHistory,
 })
+
+// const NestedSchema = z.object({
+//     // Type '{ name?: string | undefined; }' is not assignable to type '{ name: string | undefined; }'.
+//     //   Property 'name' is optional in type '{ name?: string | undefined; }' but required in type '{ name: string | undefined; }'.ts(2322)
+//     name: z.string().optional(),
+// })
+// type NestedType = z.infer<typeof NestedSchema>
+// const ParentSchema = co.map({ obj: NestedSchema, })
+
+// function createParentItem() {
+//     const nested: NestedType = { name: "Test Item" };
+//     return ParentSchema.create({ obj/*error occurs here*/: nested });
+// }

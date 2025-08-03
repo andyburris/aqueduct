@@ -1,7 +1,6 @@
 "use client";
 
-import { useAccount, useDemoAuth, usePasskeyAuth, usePassphraseAuth } from "jazz-react";
-import { APPLICATION_NAME } from "./main";
+import { useAccount, useDemoAuth } from "jazz-tools/react";
 
 export function AuthButton() {
   const { logOut } = useAccount();

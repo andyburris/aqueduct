@@ -1,24 +1,26 @@
 "use client"
 
 import { GearSix } from "@phosphor-icons/react";
-import { JazzInspector } from "jazz-inspector";
-import { useAccount } from "jazz-react";
+import { JazzInspector } from "jazz-tools/inspector";
+import { useAccount } from "jazz-tools/react";
 import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Link } from "../common/Components";
 import { FountainLogo } from "../common/FountainLogo";
 import { Header } from "../common/Header";
+import { GooglePhotoTimelineItem } from "../data/timeline/converters/googlephotoconverter";
+import { LocationHistoryTimelineItem } from "../data/timeline/converters/locationhistoryconverter";
 import { SpotifyListenTimelineItem, SpotifyPlaylistTimelineItem } from "../data/timeline/converters/spotifyconverter";
-import { TestTimelineItem } from "../data/timeline/converters/testconverter";
 import { Duration, TimelineDurationItem, TimelineItem } from "../data/timeline/timeline";
 import { OnboardingPage } from "../onboarding/OnboardingPage";
 import { TicksWithIndicator } from "./Ticks";
 import { DurationsView } from "./timeline/DurationsView";
-import { LocationHistoryTimelineItem } from "../data/timeline/converters/locationhistoryconverter";
-import { GooglePhotoTimelineItem } from "../data/timeline/converters/googlephotoconverter";
+import { FountainUserAccount } from "../../jazz";
+import { TestTimelineItem } from "../data/timeline/converters/testconverter";
+import { TanaTimelineItem } from "../data/timeline/converters/tanaconverter";
 
 export function HomePage() {
-    const { me } = useAccount({ resolve: { root: { syncState: {  } } }})
+    const { me } = useAccount(FountainUserAccount, { resolve: { root: { syncState: {  } } }})
     if(!me) return <p>Loading...</p>
     if(!me.root.syncState.syncing) return <OnboardingPage/>
 
@@ -38,11 +40,12 @@ export function HomePage() {
 
 function Timeline() {
     const [scrollPosition, setScrollPosition] = useState({ startIndex: 0, endIndex: 0 })
-    const { me } = useAccount({ resolve: { root: {
+    const { me } = useAccount(FountainUserAccount, { resolve: { root: {
         integrations: {
             spotifyIntegration: { playlists: { items: true }, listeningHistory: { listens: true } },
             // googleIntegration: { files: true },
-            googleIntegration: { files: { items: true }, locations: { items: true }, photos: { items: { $each: { photo: true } } } },
+            // googleIntegration: { files: { items: true }, locations: { items: true }, photos: { items: { $each: { photo: true } } } },
+            tanaIntegration: { isolatedNodes: { $each: true } },
             testIntegration: { events: { $each: true} }
         }
     } }})
@@ -52,29 +55,31 @@ function Timeline() {
         .flatMap(playlist => SpotifyPlaylistTimelineItem.playlistToTimelineItems(playlist))
     const spotifyListenItems = me.root.integrations.spotifyIntegration.listeningHistory.listens
         .map(listen => new SpotifyListenTimelineItem(listen))
-    const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files.items
-        .map(file => new TimelineItem(
-            file.id ?? "",
-            new Date(file.modifiedTime ?? 0),
-            "google-drive",
-            "File",
-            file.name ?? "",
-            file.webViewLink ?? file.webContentLink ?? undefined,
-        ))
-    const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
-        .map(l => new LocationHistoryTimelineItem(l))
-    const googlePhotosTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.photos.items
-        .map(p => new GooglePhotoTimelineItem(p.photo, p.metadata))
-    // const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
-    //     .map(n => new TestTimelineItem(n))
+    const tanaItems = TanaTimelineItem.isolatedToTimelineItems(me.root.integrations.tanaIntegration.isolatedNodes)
+    // const googleDriveTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.files.items
+    //     .map(file => new TimelineItem(
+    //         file.id ?? "",
+    //         new Date(file.modifiedTime ?? 0),
+    //         "google-drive",
+    //         "File",
+    //         file.name ?? "",
+    //         file.webViewLink ?? file.webContentLink ?? undefined,
+    //     ))
+    // const locationHistoryTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.locations.items
+    //     .map(l => new LocationHistoryTimelineItem(l))
+    // const googlePhotosTimelineItems: TimelineItem[] = me.root.integrations.googleIntegration.photos.items
+    //     .map(p => new GooglePhotoTimelineItem(p.photo, p.metadata))
+    const testTimelineItems: TestTimelineItem[] = me.root.integrations.testIntegration.events
+        .map(n => new TestTimelineItem(n))
     
     const allTimelineItems = [
         ...spotifyTimelineItems,
         ...spotifyListenItems,
-        ...googleDriveTimelineItems,
-        ...locationHistoryTimelineItems,
-        ...googlePhotosTimelineItems,
-        // ...testTimelineItems,
+        // ...googleDriveTimelineItems,
+        // ...locationHistoryTimelineItems,
+        // ...googlePhotosTimelineItems,
+        ...tanaItems,
+        ...testTimelineItems,
     ]
     const sortedTimelineItems = allTimelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
     const withDays = insertDays(sortedTimelineItems)

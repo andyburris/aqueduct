@@ -41,21 +41,8 @@ export const TanaJSONExportSchema = z.object({
 
 export type TanaJSONExport = z.infer<typeof TanaJSONExportSchema>;
 
-const TanaExportSchema = z.object({
-    formatVersion: z.number(),
-    editors: z.array(z.tuple([z.string(), z.number()])),
-    lastTransactionId: z.number(),
-    lastFbKey: z.string(),
-    optimisticTransactionIds: z.array(z.number()),
-    isolatedNodes: z.map(z.string(), z.any()), // Will be refined after schema definition
-    flatNodes: z.map(z.string(), z.any()), // Will be refined after schema definition
-    workspace: z.any(), // Will be refined after schema definition
-});
-
-type TanaExport = z.infer<typeof TanaExportSchema>;
-
 // Base schemas using getter pattern for circular references
-const TanaNodeBaseSchema = z.object({
+export const TanaNodeBaseSchema = z.object({ 
     id: z.string(),
     ownerId: z.string(),
     createdAt: z.number(),
@@ -69,12 +56,12 @@ const TanaNodeBaseSchema = z.object({
     },
 });
 
-const TanaUserNodeSchema = TanaNodeBaseSchema.extend({
+export const TanaUserNodeSchema = TanaNodeBaseSchema.extend({
     modifiedTimestamps: z.array(z.number()).optional(),
     touchCounts: z.array(z.number()).optional(),
 });
 
-const TanaRootNodeSchema = TanaNodeBaseSchema.omit({ children: true, ownerId: true }).extend({
+export const TanaRootNodeSchema = TanaNodeBaseSchema.omit({ children: true, ownerId: true }).extend({
     get homeNode() {
         return TanaHomeNodeSchema;
     },
@@ -110,11 +97,14 @@ function isTanaRootNode(node: TanaNode): node is TanaRootNode {
            'usersNode' in node && 'workspaceNode' in node && 'trashNode' in node;
 }
 
-const TanaSystemNodeSchema = TanaNodeBaseSchema.omit({ ownerId: true }).extend({
+export const TanaSystemNodeSchema = TanaNodeBaseSchema.omit({ ownerId: true, children: true }).extend({
     id: z.literal("SYS_0"),
+    get children() {
+        return z.array(TanaNodeSchema);
+    },
 });
 
-const TanaHomeNodeSchema = TanaUserNodeSchema.omit({ name: true, children: true, metadata: true }).extend({
+export const TanaHomeNodeSchema = TanaUserNodeSchema.omit({ name: true, children: true, metadata: true }).extend({
     docType: z.literal("home"),
     name: z.string(),
     get children() {
@@ -125,14 +115,14 @@ const TanaHomeNodeSchema = TanaUserNodeSchema.omit({ name: true, children: true,
     },
 });
 
-const TanaTextNodeSchema = TanaUserNodeSchema.omit({ name: true, children: true }).extend({
+export const TanaTextNodeSchema = TanaUserNodeSchema.omit({ name: true, children: true }).extend({
     name: z.string(),
     get children() {
         return z.array(TanaNodeSchema);
     },
 });
 
-const TanaTagSchema = TanaUserNodeSchema.omit({ name: true, children: true, metadata: true }).extend({
+export const TanaTagSchema = TanaUserNodeSchema.omit({ name: true, children: true, metadata: true }).extend({
     docType: z.literal("tagDef"),
     name: z.string(),
     get metadata() {
@@ -143,7 +133,7 @@ const TanaTagSchema = TanaUserNodeSchema.omit({ name: true, children: true, meta
     },
 });
 
-const TanaFieldSchema = TanaUserNodeSchema.omit({ children: true, name: true, metadata: true }).extend({
+export const TanaFieldSchema = TanaUserNodeSchema.omit({ children: true, name: true, metadata: true }).extend({
     docType: z.literal("attrDef"),
     name: z.string(),
     get metadata() {
@@ -151,11 +141,11 @@ const TanaFieldSchema = TanaUserNodeSchema.omit({ children: true, name: true, me
     },
 });
 
-const TanaTupleNodeSchema = TanaUserNodeSchema.omit({ name: true, description: true }).extend({
+export const TanaTupleNodeSchema = TanaUserNodeSchema.omit({ name: true, description: true }).extend({
     docType: z.literal("tuple"),
 });
 
-const TanaMetadataPropertySchema = TanaTupleNodeSchema.omit({ children: true }).extend({
+export const TanaMetadataPropertySchema = TanaTupleNodeSchema.omit({ children: true }).extend({
     get typeNode() {
         return TanaFieldSchema;
     },
@@ -164,7 +154,7 @@ const TanaMetadataPropertySchema = TanaTupleNodeSchema.omit({ children: true }).
     },
 });
 
-const TanaFieldValueSchema = TanaTupleNodeSchema.omit({ children: true }).extend({
+export const TanaFieldValueSchema = TanaTupleNodeSchema.omit({ children: true }).extend({
     get fieldNode() {
         return TanaFieldSchema;
     },
@@ -173,7 +163,7 @@ const TanaFieldValueSchema = TanaTupleNodeSchema.omit({ children: true }).extend
     },
 });
 
-const TanaMetadataNodeSchema = TanaUserNodeSchema.omit({ ownerId: true, children: true }).extend({
+export const TanaMetadataNodeSchema = TanaUserNodeSchema.omit({ ownerId: true, children: true }).extend({
     docType: z.literal("metanode"),
     ownerId: z.string(),
     get children() {
@@ -181,7 +171,7 @@ const TanaMetadataNodeSchema = TanaUserNodeSchema.omit({ ownerId: true, children
     },
 });
 
-const TanaTagMetadataNodeSchema = TanaMetadataNodeSchema.omit({ children: true }).extend({
+export const TanaTagMetadataNodeSchema = TanaMetadataNodeSchema.omit({ children: true }).extend({
     get extendedTags() {
         return z.array(TanaFieldValueSchema);
     },
@@ -193,13 +183,13 @@ const TanaTagMetadataNodeSchema = TanaMetadataNodeSchema.omit({ children: true }
     },
 });
 
-const TanaUnknownNodeSchema = TanaUserNodeSchema.omit({ ownerId: true }).extend({
+export const TanaUnknownNodeSchema = TanaUserNodeSchema.omit({ ownerId: true }).extend({
     ownerId: z.string().optional(),
     docType: z.string().optional(),
-    isUnknown: z.enum(["UNKNOWN_USER", "UNKNOWN_SYSTEM", "UNKNOWN_MISSING", "UNKNOWN_WORKSPACE", "UNKNOWN_ORPHANED"]),
+    isUnknown: z.literal(["UNKNOWN_USER", "UNKNOWN_SYSTEM", "UNKNOWN_MISSING", "UNKNOWN_WORKSPACE", "UNKNOWN_ORPHANED"]),
 });
 
-const TanaNodeSchema = z.union([
+export const TanaNodeSchema = z.union([
     TanaSystemNodeSchema,
     TanaRootNodeSchema,
     TanaHomeNodeSchema,
@@ -229,7 +219,7 @@ export type TanaMetadataNode = z.infer<typeof TanaMetadataNodeSchema>;
 export type TanaUnknownNode = z.infer<typeof TanaUnknownNodeSchema>;
 export type TanaNode = z.infer<typeof TanaNodeSchema>;
 
-const TanaWorkspaceSchema = z.object({
+export const TanaWorkspaceSchema = z.object({
     get rootNode() {
         return TanaRootNodeSchema;
     },
@@ -238,7 +228,7 @@ const TanaWorkspaceSchema = z.object({
     },
 });
 
-type TanaWorkspace = z.infer<typeof TanaWorkspaceSchema>;
+export type TanaWorkspace = z.infer<typeof TanaWorkspaceSchema>;
 
 // Helper function to create isolated Zod schemas
 function createIsolatedSchema<T extends z.ZodTypeAny>(schema: T): z.ZodType<Isolated<z.infer<T>>> {
@@ -299,21 +289,21 @@ export type Isolated<T> = {
 export type IsolatedTanaNode = Isolated<TanaNode>;
 
 // Create isolated schemas for each node type
-const IsolatedTanaNodeBaseSchema = createIsolatedSchema(TanaNodeBaseSchema);
-const IsolatedTanaUserNodeSchema = createIsolatedSchema(TanaUserNodeSchema);
-const IsolatedTanaRootNodeSchema = createIsolatedSchema(TanaRootNodeSchema);
-const IsolatedTanaSystemNodeSchema = createIsolatedSchema(TanaSystemNodeSchema);
-const IsolatedTanaHomeNodeSchema = createIsolatedSchema(TanaHomeNodeSchema);
-const IsolatedTanaTextNodeSchema = createIsolatedSchema(TanaTextNodeSchema);
-const IsolatedTanaTagSchema = createIsolatedSchema(TanaTagSchema);
-const IsolatedTanaFieldSchema = createIsolatedSchema(TanaFieldSchema);
-const IsolatedTanaMetadataPropertySchema = createIsolatedSchema(TanaMetadataPropertySchema);
-const IsolatedTanaFieldValueSchema = createIsolatedSchema(TanaFieldValueSchema);
-const IsolatedTanaTagMetadataNodeSchema = createIsolatedSchema(TanaTagMetadataNodeSchema);
-const IsolatedTanaMetadataNodeSchema = createIsolatedSchema(TanaMetadataNodeSchema);
-const IsolatedTanaUnknownNodeSchema = createIsolatedSchema(TanaUnknownNodeSchema);
+export const IsolatedTanaNodeBaseSchema = createIsolatedSchema(TanaNodeBaseSchema);
+export const IsolatedTanaUserNodeSchema = createIsolatedSchema(TanaUserNodeSchema);
+export const IsolatedTanaRootNodeSchema = createIsolatedSchema(TanaRootNodeSchema);
+export const IsolatedTanaSystemNodeSchema = createIsolatedSchema(TanaSystemNodeSchema);
+export const IsolatedTanaHomeNodeSchema = createIsolatedSchema(TanaHomeNodeSchema);
+export const IsolatedTanaTextNodeSchema = createIsolatedSchema(TanaTextNodeSchema);
+export const IsolatedTanaTagSchema = createIsolatedSchema(TanaTagSchema);
+export const IsolatedTanaFieldSchema = createIsolatedSchema(TanaFieldSchema);
+export const IsolatedTanaMetadataPropertySchema = createIsolatedSchema(TanaMetadataPropertySchema);
+export const IsolatedTanaFieldValueSchema = createIsolatedSchema(TanaFieldValueSchema);
+export const IsolatedTanaTagMetadataNodeSchema = createIsolatedSchema(TanaTagMetadataNodeSchema);
+export const IsolatedTanaMetadataNodeSchema = createIsolatedSchema(TanaMetadataNodeSchema);
+export const IsolatedTanaUnknownNodeSchema = createIsolatedSchema(TanaUnknownNodeSchema);
 
-const IsolatedTanaNodeSchema = z.union([
+export const IsolatedTanaNodeSchema = z.union([
     IsolatedTanaSystemNodeSchema,
     IsolatedTanaRootNodeSchema,
     IsolatedTanaHomeNodeSchema,
@@ -326,6 +316,20 @@ const IsolatedTanaNodeSchema = z.union([
     IsolatedTanaTagMetadataNodeSchema,
     IsolatedTanaUnknownNodeSchema,
 ]);
+
+export const TanaExportSchema = z.object({
+    formatVersion: z.number(),
+    editors: z.array(z.tuple([z.string(), z.number()])),
+    lastTransactionId: z.number(),
+    lastFbKey: z.string(),
+    optimisticTransactionIds: z.array(z.number()),
+    isolatedNodes: z.map(z.string(), IsolatedTanaNodeSchema),
+    flatNodes: z.map(z.string(), TanaNodeSchema),
+    workspace: TanaWorkspaceSchema,
+});
+
+export type TanaExport = z.infer<typeof TanaExportSchema>;
+
 
 function rawNodeToIsolatedNode(
     rawID: string, 
@@ -674,7 +678,7 @@ function isolatedNodeToFullNode(
         { ...isolated } : 
         { ...isolated, children: undefined };
     
-    const mappedChildren = children ? { children: children.map(childID => memoizedIsolatedToFull(childID)) } : {};
+    const mappedChildren = children ? { children: (children as string[]).map(childID => memoizedIsolatedToFull(childID)) } : {};
     const mappedMetadata = metadataID ? (() => { 
         const metadata = memoizedIsolatedToFull(metadataID); 
         return "docType" in metadata && metadata.docType === "metanode" ? { metadata: metadata as TanaMetadataNode } : {}; 
@@ -778,7 +782,7 @@ function isolatedNodeToFullNode(
     } as TanaNode;
 }
 
-export class TanaExtensionMemoized {
+export class TanaExtension {
     private rawNodesMemoization = createAdvancedCyclicMemoization(
         (id: string) => id,
         () => ({} as IsolatedTanaNode & { raw: TanaNodeExportRaw })
@@ -797,8 +801,8 @@ export class TanaExtensionMemoized {
         const rawLookup = new Map<string, TanaNodeExportRaw>(validatedJson.docs.map(doc => [doc.id, doc]));
         
         // Create memoized functions with access to raw lookup
-        const memoizedRawToIsolated = this.rawNodesMemoization(
-            (id: string) => rawNodeToIsolatedNode(id, rawLookup, memoizedRawToIsolated)
+        const memoizedRawToIsolated: (id: string) => IsolatedTanaNode = this.rawNodesMemoization(
+            (id: string) => rawNodeToIsolatedNode(id, rawLookup, memoizedRawToIsolated as any)
         );
         
         // Process all raw nodes to isolated nodes
@@ -826,7 +830,7 @@ export class TanaExtensionMemoized {
 
     flatNodesToWorkspace(flatNodes: Map<string, IsolatedTanaNode>): [TanaWorkspace, Map<string, TanaNode>] {
         // Create memoized function for isolated to full node conversion
-        const memoizedIsolatedToFull = this.fullNodesMemoization(
+        const memoizedIsolatedToFull: (id: string) => TanaNode = this.fullNodesMemoization(
             (id: string) => isolatedNodeToFullNode(id, flatNodes, memoizedIsolatedToFull)
         );
 
@@ -861,5 +865,26 @@ export class TanaExtensionMemoized {
             throw new Error('Invalid isolated node: must have isIsolated=true and id field');
         }
         return node as IsolatedTanaNode;
+    }
+
+    static nodeToString(node: TanaNode, indent = 0): string {
+        // if (overflowed) return "";
+        if (indent > 10) {  return "[... too deep to display]"; }
+        const indentStr = " ".repeat(indent * 2);
+        let output = "";
+        if("fieldNode" in node) {
+            output += `\n${indentStr}[${node.fieldNode.name}]:`;
+            node.children.forEach((child: any) => output += this.nodeToString(child, indent + 1));
+        } else if("name" in node) {
+            const tagMetadataProperty: TanaMetadataProperty | undefined = ("metadata" in node ? node.metadata?.children?.find(metadataProperty => "typeNode" in metadataProperty && metadataProperty?.typeNode?.id === "SYS_A13") as TanaMetadataProperty : undefined);
+            if(tagMetadataProperty && (tagMetadataProperty.children[0] as TanaTag).name === undefined) console.error("Tag metadata property has undefined tag name: ", tagMetadataProperty.children[0]);
+            const tag = tagMetadataProperty ? ` #${(tagMetadataProperty.children[0] as TanaTag).name}` : "";
+            // output += `\n${indentStr}- ${node.name ?? `(empty | ${node.id})`}${tag}`;
+            output += `\n${indentStr}- ${node.name ?? ""}${tag}`;
+            if("children" in node && node.children) {
+                (node.children as any[]).forEach((child: any) => output += this.nodeToString(child, indent + 1));
+            }
+        }
+        return output;
     }
 }

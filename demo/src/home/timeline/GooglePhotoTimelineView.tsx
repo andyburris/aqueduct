@@ -1,4 +1,4 @@
-import { ProgressiveImg } from "jazz-react";
+import { ProgressiveImg } from "jazz-tools/react";
 import { GooglePhotoTimelineItem } from "../../data/timeline/converters/googlephotoconverter";
 import { BasicTimelineView } from "./DefaultTimelineView";
 

@@ -1,5 +1,5 @@
 {
-  "name": "aqueduct/integrations/spotify",
+  "name": "integration-spotify",
   "main": "spotify.ts",
   "types": "spotify.ts",
   "dependencies": {
