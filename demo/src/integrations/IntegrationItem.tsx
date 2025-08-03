@@ -42,7 +42,7 @@ function IntegrationItemHeader(props: IntegrationItemProps & { isOpen: boolean }
     return (
         <div className={`flex p-4 gap-4 items-center hover:bg-neutral-100 cursor-pointer ${isOpen ? "border-b border-neutral-200" : ""}`}>
             <LogoForSource source={id} className="w-8 h-8 rounded-lg border border-neutral-200"/>
-            <div className="flex flex-col flex-grow items-start">
+            <div className="flex flex-col grow items-start">
                 <p className="font-semibold">{name}</p>
                 <p className="text-neutral-500">{flows.filter(f => f.isConnected).length}/{flows.length} flow{flows.length === 1 ? "" : "s"} connected</p>
             </div>

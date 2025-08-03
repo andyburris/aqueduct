@@ -9,12 +9,16 @@ export function TanaTimelineView({ item }: { item: TanaTimelineItem }) {
                 <p className="grow">{item.description}</p>
                 {(() => {
                     const cleanedText = (item.childText || "")
+                        .replace("<em>", "*")
+                        .replace("</em>", "*")
+                        .replace("<strong>", "**")
+                        .replace("</strong>", "**")
                         .split('\n')
                         .slice(2)
                         .join('\n')
                         .trim();
                     return cleanedText ? (
-                        <article className="prose">
+                        <article className="prose wrap-anywhere">
                             <Markdown>{cleanedText}</Markdown>
                         </article>
                     ) : null;

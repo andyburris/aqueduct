@@ -1,6 +1,6 @@
 function YearTicks({ year, className }: { year: number, className?: string }) {
     return (
-        <div className={`flex gap-1 items-end justify-between flex-grow ${className ? className : ""}`}>
+        <div className={`flex gap-1 items-end justify-between grow ${className ? className : ""}`}>
             <div className="flex w-px gap-0.5">
                 <div className="h-5 w-px min-w-px bg-neutral-300" />
                 <p className="text-xs text-neutral-400 -mt-0.5">{year}</p>
@@ -28,7 +28,7 @@ export function TicksWithIndicator({ startDate, endDate, currentRange, className
         <div className={`flex ${className ? className : ""}`}>
             { ticks }
             <div 
-                className="absolute h-5 rounded-t-md min-w-1 transition-all duration-[50ms]" 
+                className="absolute h-5 rounded-t-md min-w-1 transition-all duration-50" 
                 style={{ 
                     left: `${currentRangeStartPercentage * 100}%`, 
                     width: `${(currentRangePercentageWidth) * 100}%`,

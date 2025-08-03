@@ -47,7 +47,7 @@ export function IntegrationsPage() {
                                 <Label className="sr-only">Supernotes API Key</Label>
                                 <CodeSimple className="text-stone-400 text-xl m-3"/>
                                 <Input 
-                                    className={"w-full outline-none bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
+                                    className={"w-full outline-hidden bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
                                     placeholder="Supernotes API Key" />
                             </TextField>
                             <Button 
@@ -346,7 +346,7 @@ export function IntegrationsPage() {
                                 <Label className="sr-only">Notion User ID</Label>
                                 <CodeSimple className="text-stone-400 text-xl m-3"/>
                                 <Input 
-                                    className={"w-full outline-none bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
+                                    className={"w-full outline-hidden bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
                                     placeholder="Notion User ID" />
                             </TextField>
                             <TextField 
@@ -357,7 +357,7 @@ export function IntegrationsPage() {
                                 <Label className="sr-only">Notion API Key</Label>
                                 <CodeSimple className="text-stone-400 text-xl m-3"/>
                                 <Input 
-                                    className={"w-full outline-none bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
+                                    className={"w-full outline-hidden bg-transparent p-3 pl-10 -ml-10 placeholder:text-stone-400"} 
                                     placeholder="Notion API Key" />
                             </TextField>
                         </div>,

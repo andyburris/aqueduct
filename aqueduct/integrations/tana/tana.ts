@@ -873,7 +873,7 @@ export class TanaExtension {
         const indentStr = " ".repeat(indent * 2);
         let output = "";
         if("fieldNode" in node) {
-            output += `\n${indentStr}[${node.fieldNode.name}]:`;
+            output += `\n${indentStr}- [${node.fieldNode.name}]:`;
             node.children.forEach((child: any) => output += this.nodeToString(child, indent + 1));
         } else if("name" in node) {
             const tagMetadataProperty: TanaMetadataProperty | undefined = ("metadata" in node ? node.metadata?.children?.find(metadataProperty => "typeNode" in metadataProperty && metadataProperty?.typeNode?.id === "SYS_A13") as TanaMetadataProperty : undefined);

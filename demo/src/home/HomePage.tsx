@@ -87,9 +87,9 @@ function Timeline() {
 
 
     return (
-        <div className="flex flex-col flex-grow w-full overflow-visible">
+        <div className="flex flex-col grow w-full overflow-visible">
             <Virtuoso
-                className="flex flex-col h-full flex-grow overflow-visible"
+                className="flex flex-col h-full grow overflow-visible"
                 totalCount={withDurations.length + 1}
                 initialTopMostItemIndex={{ align: "end", index: withDurations.length }}
                 rangeChanged={({ startIndex, endIndex }) => {
@@ -105,7 +105,7 @@ function Timeline() {
                     )
                 }}
             />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent h-8">
+            <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-white via-white to-transparent h-8">
                 <TicksWithIndicator
                     startDate={sortedTimelineItems[0]?.timestamp ?? new Date()} 
                     endDate={sortedTimelineItems[sortedTimelineItems.length - 1]?.timestamp ?? new Date()}

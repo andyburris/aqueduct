@@ -21,7 +21,7 @@ export function BasicTimelineView({ item, children }: { item: TimelineItem, chil
     const logo = <LogoForSource 
         source={item.source.toLowerCase()} 
         type={item.type.toLowerCase()}
-        className={`w-6 h-6 rounded-2xl text-sm border shrink-0 border-[var(--icon-border)]`}
+        className={`w-6 h-6 rounded-2xl text-sm border shrink-0 border-(--icon-border)`}
      />
 
     return (
@@ -30,7 +30,7 @@ export function BasicTimelineView({ item, children }: { item: TimelineItem, chil
                 ? <Link to={item.url} className="shrink-0">{logo}</Link>
                 : logo
             }
-            <div className="grow">
+            <div className="grow shrink">
                 {children}
             </div>
             <p className="text-neutral-500 shrink-0 text-right">{timeFormatter.format(item.timestamp)}</p>
