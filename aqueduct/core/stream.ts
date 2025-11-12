@@ -1,10 +1,19 @@
-import xs, { Stream as XStream, Producer as XProducer, Listener as XListener, MemoryStream, Listener } from 'xstream'
-import flattenConcurrentlyAtMost from 'xstream/extra/flattenConcurrentlyAtMost'
-import flattenConcurrently from 'xstream/extra/flattenConcurrently'
-import { default as baseDropRepeats } from 'xstream/extra/dropRepeats'
+import xs, { MemoryStream, Listener as XListener, Producer as XProducer, Stream as XStream } from 'xstream';
+import debounce from 'xstream/extra/debounce';
+import { default as baseDropRepeats } from 'xstream/extra/dropRepeats';
+import flattenConcurrently from 'xstream/extra/flattenConcurrently';
+import flattenConcurrentlyAtMost from 'xstream/extra/flattenConcurrentlyAtMost';
+
+export type Producer<T> = XProducer<T>;
+export type Listener<T> = XListener<T>;
 
 export class Stream<T> {
     private _stream: XStream<T>;
+
+    // Utility method to access the underlying xs.Stream
+    asBaseStream(): XStream<T> {
+        return this._stream;
+    }        
 
     // Constructor
     constructor(stream?: XStream<T>) {
@@ -12,7 +21,7 @@ export class Stream<T> {
     }
 
     // Static factory methods
-    static create<T>(producer?: XProducer<T>): Stream<T> {
+    static create<T>(producer?: Producer<T>): Stream<T> {
         return new Stream(xs.create(producer));
     }
 
@@ -53,25 +62,30 @@ export class Stream<T> {
         }));
     }
 
-    static fromHandle<T>(): [Stream<T>, (value: T) => void] {
-        let lastValue: T;
-        let listener: Listener<T> = {
-            next: value => lastValue = value,
-            error: () => {},
-            complete: () => {}
-        }
+    static fromHandle<T>(
+        ...initialItems: ReadonlyArray<T>
+    ): { stream: Stream<T>, emit: (value: T) => void, emitComplete: () => void, emitError: (error: any) => void } {
+        let listener: Listener<T>;
         let emit = (value: T) => {
-            listener.next(value)
-        };
-
+            if(!listener) console.warn("Calling emit without a listener attached");
+            else listener.next(value);
+        }
+        let emitComplete = () => {
+            if(!listener) console.warn("Calling emitComplete without a listener attached");
+            else listener.complete();
+        }
+        let emitError = (error: any) => {
+            if(!listener) console.warn("Calling emitError without a listener attached");
+            else listener.error(error);
+        }
         const stream = new Stream<T>(xs.create({
             start: l => {
-                if (lastValue) listener.next(lastValue);
+                initialItems.forEach(item => l.next(item));
                 listener = l;
             },
             stop: () => {}
         }));
-        return [stream, emit];
+        return { stream, emit, emitComplete, emitError };
     }
 
     static periodic(period: number): Stream<number> {
@@ -83,11 +97,11 @@ export class Stream<T> {
     }
 
     // Instance methods
-    addListener(listener: XListener<T>): void {
+    addListener(listener: Listener<T>): void {
         this._stream.addListener(listener);
     }
 
-    removeListener(listener: XListener<T>): void {
+    removeListener(listener: Listener<T>): void {
         this._stream.removeListener(listener);
     }
 
@@ -137,11 +151,43 @@ export class Stream<T> {
         return new Stream(
             this._stream
                 .map(value => {
-                    const result = project(value);
-                    return result instanceof Promise ? xs.fromPromise(result) : xs.of(result);
+                    const stream: XStream<U> = xs.create({
+                        start: emit => {
+                            const result = project(value);
+                            if (result instanceof Promise) {    
+                                result
+                                    .then(v => emit.next(v))
+                                    .catch(err => emit.error(err))
+                                    .finally(() => emit.complete());
+                            } else {
+                                emit.next(result);
+                                emit.complete();
+                            }
+                        },
+                        stop: () => {}
+                    })
+                    return stream;
                 })
                 .compose(maxConcurrent ? flattenConcurrentlyAtMost(maxConcurrent) : flattenConcurrently)
         );
+    }
+
+    // type-safe for consumers of mapItems
+    mapItems<Arr extends ReadonlyArray<any>, U>(
+        this: Stream<Arr>,
+        transform: (item: Arr[number]) => U | Promise<U>
+    ): Stream<U[]> {
+    // type-safe within mapItems
+    // mapItems<U>(this: Stream<ReadonlyArray<T>>, transform: (item: T) => U | Promise<U>): Stream<U[]> {
+        return this.map(async items => {
+            const promises: Promise<U>[] = items.map(item => {
+                const result = transform(item);
+                const promise: Promise<U> = (result instanceof Promise ? result : Promise.resolve(result));
+                return promise
+            })
+            const resolved = await Promise.all(promises);
+            return resolved as U[];
+        });
     }
 
     onEach(effect: (value: T) => void): Stream<T> {
@@ -188,33 +234,125 @@ export class Stream<T> {
         return new Stream(this._stream.compose(baseDropRepeats(isEqual)));
     }
 
+    debounce(
+        milliseconds: number,
+    ): Stream<T> {
+        return new Stream(this._stream.compose(debounce(milliseconds)))
+    }
+
+    
     listen(
-        onNext?: (value: T) => void,
         onError?: (error: any) => void,
-        onComplete?: () => void
-    ): void {
-        this._stream.addListener({
+        onComplete?: () => void,
+        onNext?: (value: T) => void,
+    ): { stopListening: () => void } {
+        const listener = {
             next: onNext ?? (() => {}),
-            error: onError ?? (() => {}),
+            error: onError ?? ((e) => { console.error("Unhandled error: ", e) }),
             complete: onComplete ?? (() => {})
-        });
+        }
+        this._stream.addListener(listener);
+        return { stopListening: () => this._stream.removeListener(listener) };
     }
 
     listenAsPromise(): Promise<T> {
         return new Promise((resolve, reject) => {
             var lastValue: T;
-            this.listen(
+            var stopListening: () => void;
+            stopListening = this.listen(
+                error => { stopListening?.(); reject(error) },
+                () => { stopListening?.(); resolve(lastValue) },
                 value => lastValue = value,
-                error => reject(error),
-                () => resolve(lastValue)
-            );
+            ).stopListening;
         });
     }
 
-    // Utility method to access the underlying xs.Stream
-    asBaseStream(): XStream<T> {
-        return this._stream;
-    }        
+
+    splitStreams<Arr extends ReadonlyArray<any>, U>(
+        this: Stream<Arr>,
+        transform: (stream: Stream<Arr[number]>) => Stream<U>,
+    ) {
+        return this.map(async items => {
+            return []
+        });
+    }
+
+
+    splitItems<Array extends ReadonlyArray<Item>, Item = Array[number], Signature = number>(
+        this: Stream<Array>,
+        eachStream: (stream: Stream<Item>, index: number) => void,
+        options?: {
+            manageStreams?: {
+                signature: (item: Item, index: number) => Signature,
+                createStream?: (item: Item, signature: Signature) =>  { stream: Stream<Item>, emit: (value: Item) => void, emitComplete: () => void },
+                updateStream?: (item: Item, emit: (item: Item) => void) => void
+            }
+            onError?: (error: any) => void,
+        },
+    ): { stopListening: () => void } {
+        const currentStreams = new Map<Signature,  { stream: Stream<Item>, emit: (value: Item) => void, emitComplete: () => void }>()
+
+        const listener = {
+            next: (items: Array) => {
+                const seen = new Set<Signature>();
+
+                // Single pass over the incoming items: emit for existing, create stub for new
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i]
+                    const signature = options?.manageStreams?.signature(item, i) ?? (i as Signature)
+                    seen.add(signature);
+                    const entry = currentStreams.get(signature);
+                    if (entry) {
+                        options?.manageStreams?.updateStream?.(item, entry.emit) ?? entry.emit(item);
+                    } else {
+                        const { stream, emit, emitComplete } = options?.manageStreams?.createStream?.(item, signature as Signature) 
+                            ?? (() => Stream.fromHandle<Item>(item))();
+
+                        eachStream(stream, i);
+
+                        currentStreams.set(signature, { stream, emitComplete, emit });
+                    }
+                }
+
+                // Remove entries that are no longer present
+                for (const [key, entry] of currentStreams) {
+                    if (!seen.has(key)) {
+                        entry.emitComplete();
+                        currentStreams.delete(key);
+                    }
+                }
+            },
+            complete: () => {
+                for (const entry of currentStreams.values()) {
+                    entry.emitComplete();
+                }
+                currentStreams.clear();
+            },
+            error: options?.onError ?? ((e) => { console.error("Unhandled error: ", e) }),
+        }
+        this._stream.addListener(listener);
+        return { stopListening: () => this._stream.removeListener(listener) };
+    }
+
+    splitEntries<Obj extends Record<string, Obj[string]>, U>(
+        this: Stream<Obj>,
+        transform: (stream: Stream<[string, Obj[string]]>) => void,
+        options?: {
+            manageStreams?: {
+                signature: (entry: [string, Obj[string]]) => string,
+                createStream?: (entry: [string, Obj[string]]) => { stream: Stream<[string, Obj[string]]>, emit: (entry: [string, Obj[string]]) => void, emitComplete: () => void },
+                updateStream?: (entry: [string, Obj[string]], emit: (entry: [string, Obj[string]]) => void) => void
+            },
+            onError?: (error: any) => void,
+        },
+    ): { stopListening: () => void } {
+        return this
+            .map(o => Object.entries(o)) //TODO: make more efficient
+            .splitItems(
+                transform,
+                options,
+        );
+    }
 }
 
 export interface CombineSignature {

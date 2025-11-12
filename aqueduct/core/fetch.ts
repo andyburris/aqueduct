@@ -1,15 +1,17 @@
 export interface FetchDiffOptions<Current, Stored, Identifier = string, Signature = Identifier, Cache = Map<Signature, Stored>> {
-    currentItems: Current[],
-    storedItems: Stored[],
+    // consider consolidating into current { items, identifier, signature } and stored { items, identifier, signature }
+    currentItems: ReadonlyArray<Current>,
+    storedItems: ReadonlyArray<Stored>,
     currentIdentifier: (currentItem: Current) => Identifier,
     storedIdentifier: (storedItem: Stored) => Identifier,
     compareIdentifiers?: (currentIdentifier: Identifier, storedIdentifier: Identifier) => boolean,
-    keepStaleItems: boolean | ((staleItems: Stored[], nonStaleItems: Stored[]) => Stored[]),
+    // TODO: consider removing this and forcing users to handle in output. though if we're doing patches then probably need to keep here
+    keepStaleItems?: boolean | ((staleItems: ReadonlyArray<Stored>, nonStaleItems: ReadonlyArray<Stored>) => ReadonlyArray<Stored>),
     convert: FetchDiffConvert<Current, Stored, Cache>,
     currentSignature?: (currentItem: Current) => Signature,
     storedSignature?: (storedItem: Stored) => Signature,
     compareSignatures?: (currentSignature: Signature, storedSignature: Signature) => boolean,
-    createCache?: (storedItems: Stored[]) => Cache,
+    createCache?: (storedItems: ReadonlyArray<Stored>) => Cache,
     // refreshCached?: undefined
 }
 
@@ -26,14 +28,22 @@ export interface FetchDiffOutput<Stored> {
     allItems: Stored[],
     newItems: Stored[],
     updatedItems: Stored[],
-    // updatedItems: { item: Stored, changes: Change[] }[],
     unchangedItems: Stored[],
     keptStaleItems: Stored[],
     removedItems: Stored[],
 }
 
+// interface ListPatch {
+//    // items to add (really splice), remove (really splice), or update (ListPatch or RecordPatch + index)
+//    // updates should be 
+// }
+// interface RecordPatch {
+//    // any lists should be a ListPatch. If a value is updated (including a whole new record) just do the value. But if it's a nested record and that record's values are updated, make it a RecordPatch
+//    [id: string]: value | ListPatch | RecordPatch
+// }
+
 export async function fetchDiff<Current, Stored, Identifier = string, Signature = Identifier, Cache = Map<Signature, Stored>,>(options: FetchDiffOptions<Current, Stored, Identifier, Signature, Cache>): Promise<FetchDiffOutput<Stored>> {
-    const { currentItems, storedItems, currentIdentifier, storedIdentifier, currentSignature = currentIdentifier, storedSignature = storedIdentifier, convert, createCache, keepStaleItems } = options
+    const { currentItems, storedItems, currentIdentifier, storedIdentifier, currentSignature = currentIdentifier, storedSignature = storedIdentifier, convert, createCache, keepStaleItems = false } = options
     //TODO: signature shouldn't default to identifier--means that items with differing data can never get reconciled if they don't have a unique signature
     // maybe shouldn't have identifier have to be part of signature, just for differentiating versions
 
@@ -86,8 +96,8 @@ export async function fetchDiff<Current, Stored, Identifier = string, Signature 
         newItems: newItems,
         updatedItems: updatedItems,
         unchangedItems: unchangedItems,
-        keptStaleItems: keptStaleItems,
-        removedItems: removedItems,
+        keptStaleItems: [...keptStaleItems],
+        removedItems: [...removedItems],
     }
 }
 

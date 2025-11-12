@@ -5,6 +5,7 @@
   "types": "index.ts",
   "dependencies": {
     "unzipit": "^1.4.3",
-    "xstream": "^11.14.0"
-  }
+    "xstream": "github:andyburris/xstream"
+  },
+  "trustedDependencies": ["xstream"]
 }

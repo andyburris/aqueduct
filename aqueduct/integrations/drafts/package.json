@@ -1,0 +1,8 @@
+{
+  "name": "integration-drafts",
+  "main": "drafts.ts",
+  "types": "drafts.ts",
+  "dependencies": {
+    "aqueduct": "^0.1.0"
+  }
+}
