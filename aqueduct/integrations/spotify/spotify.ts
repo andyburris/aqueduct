@@ -51,6 +51,7 @@ export class SpotifyExtension {
             const current = await api.player.getCurrentlyPlayingTrack()
             console.log(`got current`)
             // Helper to round timestamp to nearest 10 seconds
+            // instead of rounding, should have separate startTime and endTime since that's the difference between current and recents
             function roundToNearest10Seconds(date: Date | string | number) {
                 const d = new Date(date);
                 return new Date(Math.round(d.getTime() / 10000) * 10000);
