@@ -1,0 +1,8 @@
+{
+  "name": "integration-jazz",
+  "main": "jazz.ts",
+  "types": "jazz.ts",
+  "peerDependencies": {
+    "jazz-tools": "^0.19.7"
+  }
+}
