@@ -21,7 +21,7 @@ export function JazzAndAuth({ children }: { children: React.ReactNode }) {
 }
 
 // export const workerID = process.env.REACT_APP_JAZZ_WORKER_ACCOUNT!
-export const workerID = "co_zZfF6epuyoM1bVLhvy7LY6mYJ8n"
+export const workerID = "co_zKh9RhNLsHYqY1bgUHPXPo7j57B"
 export async function getWorkerAccount() {
     return co.account().load(workerID)
 }

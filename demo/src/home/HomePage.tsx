@@ -95,6 +95,7 @@ function Timeline() {
                 rangeChanged={({ startIndex, endIndex }) => {
                     setScrollPosition({ startIndex, endIndex })
                 }}
+                overscan={10}
                 itemContent={(index: number) => {
                     if(index >= withDurations.length) return <div className="h-8" />
                     const item = withDurations[index]

@@ -1,12 +1,24 @@
 import { Stream } from "aqueduct";
 import { RefsToResolve, RefsToResolveStrict, Resolved } from "jazz-tools";
 
-type Has$Jazz = { $jazz: { id: string, subscribe: (options: any, callback: (value: any) => void) => () => void } };
+export type Has$Jazz = { $jazz: { 
+    id: string, 
+    subscribe: (options: any, callback: (value: any) => void) => () => void,
+    ensureLoaded: (options: { resolve: any }) => Promise<any>,
+}, };
 // type Has$Jazz = CoList
 // type Has$Jazz = Loaded<CoValueClassOrSchema>
 
 declare module "aqueduct" {
     export interface Stream<T> {
+        resolveCoValue<
+            Item extends Has$Jazz,
+            const R extends RefsToResolve<Item>,
+        >(
+            this: Stream<Item>,
+            resolve: RefsToResolveStrict<Item, R>,
+        ): Stream<Resolved<Item, R>>;
+
         splitCoValueItems<
             Item extends Has$Jazz,
             const R extends RefsToResolve<Item>,
@@ -50,6 +62,16 @@ declare module "aqueduct" {
 //         coValue.$jazz.applyDiff(data);
 //     });
 // };
+
+Stream.prototype.resolveCoValue = function <
+    Item extends Has$Jazz,
+    const R extends RefsToResolve<Item>,
+>(
+    this: Stream<Item>,
+    resolve: RefsToResolveStrict<Item, R>,
+): Stream<Resolved<Item, R>> {
+    return this.map(async shallowCoValue => shallowCoValue.$jazz.ensureLoaded({ resolve }));
+};
 
 Stream.prototype.splitCoValueItems = function<
     Item extends Has$Jazz,
@@ -155,3 +177,4 @@ export const createStreamFromCoValue = function <
 //     .splitCoValueItems(
 //         (stream) => stream.map(item => item.name),
 //     )
+
